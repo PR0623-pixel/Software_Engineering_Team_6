@@ -13,6 +13,7 @@
         <input type="password" v-model="loginState.password" placeholder="••••••••" autocomplete="current-password" required />
       </div>
       <br />
+      <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
       <button type="submit" class="btn btn-purple">로그인</button>
     </form>
 
@@ -25,12 +26,25 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import api from '../api/axios';
 
+const router = useRouter();
 const loginState = reactive({ email: '', password: '' });
+const errorMsg = ref('');
 
-const handleLogin = () => {
-  console.log('로그인 시도:', loginState);
+const handleLogin = async () => {
+  errorMsg.value = '';
+  try {
+    await api.post('/auth/login', {
+      email: loginState.email,
+      password: loginState.password,
+    });
+    router.push('/');
+  } catch (e) {
+    errorMsg.value = e.response?.data?.message || '이메일 또는 비밀번호를 확인해주세요.';
+  }
 };
 </script>
 
@@ -54,4 +68,5 @@ const handleLogin = () => {
 .btn-purple:hover { background: var(--accent-hover); }
 
 .dot.on { background: var(--accent); width: 16px; border-radius: 3px; }
+.error-msg { font-size: 12px; color: #E24B4A; margin-bottom: 10px; }
 </style>

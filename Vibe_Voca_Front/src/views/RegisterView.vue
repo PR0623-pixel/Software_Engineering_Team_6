@@ -22,6 +22,7 @@
         <p class="strength-tip">{{ pwTip }}</p>
       </div>
       <br />
+      <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
       <button type="submit" class="btn btn-dark">회원가입</button>
     </form>
 
@@ -34,10 +35,13 @@
 </template>
 
 <script setup>
-import { reactive, computed } from 'vue';
+import { reactive, computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import api from '../api/axios';
 
-/* [캡슐화] 폼 데이터 상태 관리 */
+const router = useRouter();
 const regState = reactive({ nickname: '', email: '', password: '' });
+const errorMsg = ref('');
 
 /* [다형성/반응형] 비밀번호 입력값에 따라 점수, 색상, 텍스트가 동적으로 변환 (기존 JS 로직 대체) */
 const pwScore = computed(() => {
@@ -65,8 +69,18 @@ const pwTip = computed(() => {
   return '훌륭한 비밀번호예요!';
 });
 
-const handleRegister = () => {
-  console.log('회원가입 시도:', regState);
+const handleRegister = async () => {
+  errorMsg.value = '';
+  try {
+    await api.post('/auth/register', {
+      email: regState.email,
+      password: regState.password,
+      nickname: regState.nickname,
+    });
+    router.push('/login');
+  } catch (e) {
+    errorMsg.value = e.response?.data?.message || '회원가입에 실패했습니다. 다시 시도해주세요.';
+  }
 };
 </script>
 
@@ -94,4 +108,5 @@ const handleRegister = () => {
 .btn-dark:hover { background: var(--dark-hover); }
 
 .dot.on { background: var(--accent); width: 16px; border-radius: 3px; }
+.error-msg { font-size: 12px; color: #E24B4A; margin-bottom: 10px; }
 </style>
