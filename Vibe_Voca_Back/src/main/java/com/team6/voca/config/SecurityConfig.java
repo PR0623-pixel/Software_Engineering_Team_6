@@ -1,3 +1,4 @@
+// src/main/java/com/team6/voca/config/SecurityConfig.java
 package com.team6.voca.config;
 
 import org.springframework.context.annotation.Bean;
@@ -20,7 +21,6 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/users/register").permitAll()
                         .anyRequest().permitAll()
                 );
 
@@ -30,14 +30,21 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+
+        // [캡슐화] 허용할 Origin 목록 — 로컬 개발 환경 모두 포함
+        config.setAllowedOrigins(List.of(
+            "http://localhost:5173",
+            "http://127.0.0.1:5173"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
+
+        // [모듈화] Preflight 요청 캐시 시간 설정 (초 단위)
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
 }

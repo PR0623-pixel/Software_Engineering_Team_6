@@ -18,3 +18,4 @@ spring:
     init:
       mode: always
       encoding: UTF-8
+
