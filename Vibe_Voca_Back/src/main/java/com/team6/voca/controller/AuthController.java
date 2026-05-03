@@ -61,6 +61,10 @@ public class AuthController {
         
         HttpSession session = request.getSession(false);
 
+        if (session == null || session.getAttribute("userId") == null) {
+            throw new UnauthorizedException("로그인이 필요합니다.");
+        }
+
         Long userId = (Long) session.getAttribute("userId");
 
         UserResponse response = userService.getMyInfo(userId);
