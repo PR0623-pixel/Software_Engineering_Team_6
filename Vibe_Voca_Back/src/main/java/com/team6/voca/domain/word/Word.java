@@ -58,6 +58,13 @@ public class Word extends BaseTimeEntity { // 공동 시간 필드 상속을 위
         this.koreanMeaning = newMeaning;
     }
 
+    public void update(String englishWord, String koreanMeaning, PartOfSpeech partOfSpeech, WordLevel level) {
+        this.englishWord = englishWord;
+        this.koreanMeaning = koreanMeaning;
+        this.partOfSpeech = partOfSpeech;
+        this.level = level;
+    }
+
     public void addExample(WordExample example){
         this.examples.add(example);
         example.setWord(this);
