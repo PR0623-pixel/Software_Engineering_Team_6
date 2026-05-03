@@ -6,6 +6,7 @@ import RegisterView from '../views/RegisterView.vue'
 import MainView from '../views/MainView.vue'
 import WordsView from '../views/WordsView.vue'
 import QuizView from '../views/QuizView.vue'
+import UserProfile from '../components/UserProfile.vue' 
 
 const routes = [
   { path: '/',         name: 'home',     component: HomeView },
@@ -14,6 +15,7 @@ const routes = [
   { path: '/main',     name: 'main',     component: MainView },
   { path: '/words',    name: 'words',    component: WordsView },
   { path: '/quiz',     name: 'quiz',     component: QuizView },
+  { path: '/profile',     name: 'profile',     component: UserProfile }
 ]
 
 const router = createRouter({
