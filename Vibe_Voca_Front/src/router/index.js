@@ -4,12 +4,16 @@ import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import MainView from '../views/MainView.vue'
+import WordsView from '../views/WordsView.vue'
+import QuizView from '../views/QuizView.vue'
 
 const routes = [
   { path: '/',         name: 'home',     component: HomeView },
   { path: '/login',    name: 'login',    component: LoginView },
   { path: '/register', name: 'register', component: RegisterView },
   { path: '/main',     name: 'main',     component: MainView },
+  { path: '/words',    name: 'words',    component: WordsView },
+  { path: '/quiz',     name: 'quiz',     component: QuizView },
 ]
 
 const router = createRouter({
