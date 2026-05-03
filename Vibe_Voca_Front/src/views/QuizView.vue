@@ -7,7 +7,7 @@
       <div v-if="phase === 'setup'" class="phase-box">
         <header class="quiz-header">
           <h1 class="page-title">단어 퀴즈</h1>
-          <p class="page-sub">영어 단어를 보고 알맞은 뜻을 고르세요</p>
+          <p class="page-sub">한국어 뜻을 보고 영어 단어를 입력하세요</p>
         </header>
 
         <div class="option-group">
@@ -40,26 +40,31 @@
         </div>
 
         <div class="question-card">
-          <p class="q-label">다음 단어의 뜻은?</p>
-          <p class="q-word">{{ currentQ.questionWord }}</p>
+          <p class="q-label">이 뜻에 해당하는 영어 단어는?</p>
+          <p class="q-word">{{ currentQ.questionMeaning }}</p>
 
-          <div class="options-grid">
-            <button
-              v-for="(opt, i) in currentQ.options"
-              :key="i"
-              class="option-btn"
-              :class="optionClass(opt)"
+          <div class="input-row">
+            <input
+              ref="answerInput"
+              v-model="typedAnswer"
+              class="answer-input"
+              :class="{ 'input-correct': isAnswered && isCorrect, 'input-wrong': isAnswered && !isCorrect }"
+              type="text"
+              placeholder="영어 단어를 입력하세요"
               :disabled="isAnswered"
-              @click="selectOption(opt)"
-            >
-              <span class="opt-num">{{ i + 1 }}</span>
-              <span class="opt-text">{{ opt }}</span>
-            </button>
+              @keydown.enter="submitAnswer"
+            />
+            <button
+              v-if="!isAnswered"
+              class="btn-submit"
+              :disabled="!typedAnswer.trim()"
+              @click="submitAnswer"
+            >확인</button>
           </div>
 
           <div v-if="isAnswered" class="result-badge" :class="isCorrect ? 'correct' : 'wrong'">
             <template v-if="isCorrect">✓ 정답!</template>
-            <template v-else>✗ 오답 &mdash; 정답: <strong>{{ correctOption }}</strong></template>
+            <template v-else>✗ 오답 &mdash; 정답: <strong>{{ currentQ.correctAnswer }}</strong></template>
           </div>
 
           <button v-if="isAnswered" class="btn-primary" @click="nextQuestion">
@@ -83,10 +88,10 @@
           <ul class="wrong-list">
             <li v-for="w in wrongAnswers" :key="w.wordId" class="wrong-item">
               <div class="wrong-word-info">
-                <span class="w-en">{{ w.questionWord }}</span>
-                <span class="w-correct">정답: {{ w.correctMeaning }}</span>
+                <span class="w-en">{{ w.correctAnswer }}</span>
+                <span class="w-meaning">{{ w.questionMeaning }}</span>
               </div>
-              <span class="w-my">내 답: {{ w.submittedMeaning }}</span>
+              <span class="w-my">내 답: {{ w.submittedWord || '(미입력)' }}</span>
             </li>
           </ul>
         </div>
@@ -101,7 +106,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import NavBar from '../components/NavBar.vue';
 import api from '../api/axios';
 
@@ -113,14 +118,15 @@ const setupError = ref('');
 
 const questions = ref([]);
 const currentIndex = ref(0);
-const selectedOption = ref(null);
+const typedAnswer = ref('');
 const isAnswered = ref(false);
 const isCorrect = ref(false);
-const correctOption = ref('');
 const answers = ref([]);
 
 const correctCount = ref(0);
 const wrongAnswers = ref([]);
+
+const answerInput = ref(null);
 
 const currentQ = computed(() => questions.value[currentIndex.value] ?? {});
 const progressPct = computed(() => ((currentIndex.value + 1) / questions.value.length) * 100);
@@ -140,13 +146,6 @@ const scoreMessage = computed(() => {
   return '틀린 단어를 다시 복습해봐요';
 });
 
-const optionClass = (opt) => {
-  if (!isAnswered.value) return {};
-  if (opt === correctOption.value) return { 'opt-correct': true };
-  if (opt === selectedOption.value && !isCorrect.value) return { 'opt-wrong': true };
-  return { 'opt-dim': true };
-};
-
 const startQuiz = async () => {
   setupError.value = '';
   setupLoading.value = true;
@@ -156,11 +155,14 @@ const startQuiz = async () => {
     if (list.length === 0) { setupError.value = '퀴즈 문제가 없습니다.'; return; }
     questions.value = list;
     currentIndex.value = 0;
-    selectedOption.value = null;
+    typedAnswer.value = '';
     isAnswered.value = false;
     answers.value = [];
     correctCount.value = 0;
+    wrongAnswers.value = [];
     phase.value = 'quiz';
+    await nextTick();
+    answerInput.value?.focus();
   } catch {
     setupError.value = '퀴즈를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
   } finally {
@@ -168,32 +170,36 @@ const startQuiz = async () => {
   }
 };
 
-const selectOption = (opt) => {
-  if (isAnswered.value) return;
-  selectedOption.value = opt;
+const submitAnswer = () => {
+  if (isAnswered.value || !typedAnswer.value.trim()) return;
 
-  // 정답은 options 중 word의 koreanMeaning — 백엔드가 첫 번째에 정답을 넣고 섞음
-  // 정답을 알 방법이 없으므로 submit 응답 전까지는 로컬 판단 불가 → 제출 후 채점
-  // 하지만 현재 백엔드 submit은 Void 반환 → 정답을 미리 저장해야 함
-  // QuizService.generateQuestions에서 options[0]이 정답이었다가 shuffle됨
-  // → 정답을 클라이언트에서 알 수 없으므로, word.koreanMeaning을 별도 필드로 받아야 함
-  // 임시: 선택한 뜻을 제출하고 서버 채점에 위임 (로컬 정오 표시는 생략)
+  const submitted = typedAnswer.value.trim();
+  const correct = currentQ.value.correctAnswer;
+  isCorrect.value = submitted.toLowerCase() === correct.toLowerCase();
   isAnswered.value = true;
-  isCorrect.value = false; // 서버 채점 전 알 수 없음
-  correctOption.value = opt; // 선택한 것 표시용
 
-  answers.value.push({
-    wordId: currentQ.value.wordId,
-    submittedMeaning: opt,
-  });
+  if (isCorrect.value) {
+    correctCount.value++;
+  } else {
+    wrongAnswers.value.push({
+      wordId: currentQ.value.wordId,
+      questionMeaning: currentQ.value.questionMeaning,
+      correctAnswer: correct,
+      submittedWord: submitted,
+    });
+  }
+
+  answers.value.push({ wordId: currentQ.value.wordId, submittedWord: submitted });
 };
 
 const nextQuestion = async () => {
   if (currentIndex.value + 1 < questions.value.length) {
     currentIndex.value++;
-    selectedOption.value = null;
+    typedAnswer.value = '';
     isAnswered.value = false;
     isCorrect.value = false;
+    await nextTick();
+    answerInput.value?.focus();
   } else {
     await finishQuiz();
   }
@@ -212,7 +218,7 @@ const resetQuiz = () => {
   phase.value = 'setup';
   questions.value = [];
   currentIndex.value = 0;
-  selectedOption.value = null;
+  typedAnswer.value = '';
   isAnswered.value = false;
   answers.value = [];
   correctCount.value = 0;
@@ -317,49 +323,43 @@ const resetQuiz = () => {
   line-height: 1.2;
 }
 
-.options-grid {
+.input-row {
   display: flex;
-  flex-direction: column;
   gap: 8px;
 }
 
-.option-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+.answer-input {
+  flex: 1;
+  padding: 11px 14px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--text);
   background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.answer-input:focus { border-color: var(--accent); }
+.answer-input:disabled { background: #fafafa; }
+.answer-input.input-correct { border-color: #3B6D11; background: #EAF3DE; }
+.answer-input.input-wrong   { border-color: #A32D2D; background: #FCEBEB; }
+
+.btn-submit {
+  padding: 11px 18px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
   font-family: 'DM Sans', sans-serif;
   font-size: 14px;
-  color: var(--text);
+  font-weight: 500;
   cursor: pointer;
-  text-align: left;
-  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+  transition: background 0.15s;
 }
-.option-btn:hover:not(:disabled) { border-color: var(--accent); background: #F9F7FF; }
-.option-btn:disabled { cursor: default; }
-
-.opt-num {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--border);
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.option-btn.opt-correct { border-color: #3B6D11; background: #EAF3DE; }
-.option-btn.opt-correct .opt-num { background: #3B6D11; color: #fff; }
-.option-btn.opt-wrong { border-color: #A32D2D; background: #FCEBEB; }
-.option-btn.opt-wrong .opt-num { background: #A32D2D; color: #fff; }
-.option-btn.opt-dim { opacity: 0.45; }
+.btn-submit:hover { background: var(--accent-hover); }
+.btn-submit:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
 
 .result-badge {
   padding: 10px 14px;
@@ -405,9 +405,9 @@ const resetQuiz = () => {
   gap: 12px;
 }
 .wrong-word-info { display: flex; flex-direction: column; gap: 2px; }
-.w-en { font-size: 15px; font-weight: 500; color: var(--text); }
-.w-correct { font-size: 12px; color: #3B6D11; }
-.w-my { font-size: 12px; color: #A32D2D; flex-shrink: 0; }
+.w-en      { font-size: 15px; font-weight: 500; color: var(--text); }
+.w-meaning { font-size: 12px; color: #3B6D11; }
+.w-my      { font-size: 12px; color: #A32D2D; flex-shrink: 0; }
 
 .perfect-msg { font-size: 16px; color: var(--text); text-align: center; }
 </style>

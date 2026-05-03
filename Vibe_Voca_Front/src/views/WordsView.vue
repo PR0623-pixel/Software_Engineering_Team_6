@@ -82,17 +82,17 @@ import NavBar from '../components/NavBar.vue';
 import api from '../api/axios';
 
 const levels = [
-  { value: 0, label: '전체' },
-  { value: 1, label: 'NEWBIE' },
-  { value: 2, label: 'BEGINNER' },
-  { value: 3, label: 'INTERMEDIATE' },
-  { value: 4, label: 'ADVANCED' },
-  { value: 5, label: 'HIGHLEVEL' },
+  { value: '', label: '전체' },
+  { value: 'NEWBIE', label: 'NEWBIE' },
+  { value: 'BEGINNER', label: 'BEGINNER' },
+  { value: 'INTERMEDIATE', label: 'INTERMEDIATE' },
+  { value: 'ADVANCED', label: 'ADVANCED' },
+  { value: 'HIGHLEVEL', label: 'HIGHLEVEL' },
 ];
 
 const words = ref([]);
 const loading = ref(false);
-const selectedDifficulty = ref(0);
+const selectedDifficulty = ref('');
 const searchQuery = ref('');
 const selectedWord = ref(null);
 
@@ -102,7 +102,7 @@ const filteredWords = computed(() => {
   const q = searchQuery.value.toLowerCase();
   return words.value.filter(w => {
     const matchSearch = !q || w.englishWord?.toLowerCase().includes(q) || w.koreanMeaning?.includes(q);
-    const matchLevel = selectedDifficulty.value === 0 || w.level === selectedDifficulty.value;
+    const matchLevel = !selectedDifficulty.value || w.level === selectedDifficulty.value;
     return matchSearch && matchLevel;
   });
 });
@@ -249,11 +249,11 @@ onMounted(fetchWords);
   padding: 2px 8px;
   border-radius: 10px;
 }
-.diff-1 { background: #EAF3DE; color: #3B6D11; }
-.diff-2 { background: #E6F1FB; color: #185FA5; }
-.diff-3 { background: #FAEEDA; color: #854F0B; }
-.diff-4 { background: #FCEBEB; color: #A32D2D; }
-.diff-5 { background: #2e1a3a; color: #e0aaff; }
+.diff-NEWBIE       { background: #EAF3DE; color: #3B6D11; }
+.diff-BEGINNER     { background: #E6F1FB; color: #185FA5; }
+.diff-INTERMEDIATE { background: #FAEEDA; color: #854F0B; }
+.diff-ADVANCED     { background: #FCEBEB; color: #A32D2D; }
+.diff-HIGHLEVEL    { background: #2e1a3a; color: #e0aaff; }
 
 /* 모달 */
 .modal-overlay {
