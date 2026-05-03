@@ -1,10 +1,18 @@
 package com.team6.voca.controller;
 
+import com.team6.voca.dto.word.WordCreateRequest;
 import com.team6.voca.dto.word.WordResponseDto;
+import com.team6.voca.dto.word.WordUpdateRequest;
 import com.team6.voca.service.WordService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,9 +31,27 @@ public class WordController {
     @GetMapping
     public ResponseEntity<List<WordResponseDto>> getAllWords() {
         List<WordResponseDto> words = wordService.getAllWords();
-        
+
         // [정보은닉] DB의 테이블 구조가 그대로 반영된 Entity(Word)를 반환하지 않고,
         // 클라이언트에게 꼭 필요한 정보만 담긴 DTO(WordResponseDto)를 반환하여 내부 데이터 구조를 숨깁니다.
         return ResponseEntity.ok(words);
+    }
+
+    @PostMapping
+    public ResponseEntity<WordResponseDto> createWord(@Valid @RequestBody WordCreateRequest request) {
+        return ResponseEntity.ok(wordService.createWord(request));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<WordResponseDto> updateWord(
+            @PathVariable Long id,
+            @Valid @RequestBody WordUpdateRequest request) {
+        return ResponseEntity.ok(wordService.updateWord(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteWord(@PathVariable Long id) {
+        wordService.deleteWord(id);
+        return ResponseEntity.noContent().build();
     }
 }
