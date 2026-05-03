@@ -41,7 +41,7 @@ const handleLogin = async () => {
       email: loginState.email,
       password: loginState.password,
     });
-    router.push('/');
+    router.push('/main');
   } catch (e) {
     errorMsg.value = e.response?.data?.message || '이메일 또는 비밀번호를 확인해주세요.';
   }
