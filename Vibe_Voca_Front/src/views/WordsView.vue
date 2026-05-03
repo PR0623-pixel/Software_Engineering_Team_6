@@ -42,8 +42,8 @@
           </div>
           <div class="word-sub">
             <span class="word-ko">{{ word.koreanMeaning }}</span>
-            <span v-if="word.difficulty" class="difficulty-badge" :class="'diff-' + word.difficulty">
-              {{ difficultyLabel(word.difficulty) }}
+            <span v-if="word.level" class="difficulty-badge" :class="'diff-' + word.level">
+              {{ difficultyLabel(word.level) }}
             </span>
           </div>
         </li>
@@ -102,7 +102,7 @@ const filteredWords = computed(() => {
   const q = searchQuery.value.toLowerCase();
   return words.value.filter(w => {
     const matchSearch = !q || w.englishWord?.toLowerCase().includes(q) || w.koreanMeaning?.includes(q);
-    const matchLevel = selectedDifficulty.value === 0 || w.difficulty === selectedDifficulty.value;
+    const matchLevel = selectedDifficulty.value === 0 || w.level === selectedDifficulty.value;
     return matchSearch && matchLevel;
   });
 });
