@@ -1,34 +1,36 @@
-<!-- src/components/NavBar.vue -->
 <template>
-  <nav class="navbar">
-    <!-- [캡슐화] 로고 클릭 시 홈으로 이동 -->
-    <div class="navbar-logo" @click="$router.push('/main')">
-      vibe<span>voca</span>
-    </div>
+  <nav class="navbar-container">
+    <div class="navbar-content">
+      
+      <router-link to="/main" class="brand-logo">
+        Vibe<span class="highlight">Voca</span>
+      </router-link>
 
-    <!-- [모듈화] 네비게이션 링크 목록 -->
-    <div class="navbar-links">
-      <button
-        v-for="link in navLinks"
-        :key="link.path"
-        class="nav-link"
-        :class="{ active: $route.path === link.path }"
-        @click="$router.push(link.path)"
-      >
-        {{ link.label }}
-      </button>
-    </div>
+      <div class="nav-links">
+        <router-link
+          v-for="link in navLinks"
+          :key="link.path"
+          :to="link.path"
+          class="nav-item"
+          active-class="active"
+        >
+          {{ link.label }}
+        </router-link>
+      </div>
 
-    <!-- [캡슐화] 로그인 상태에 따라 다른 UI 표시 -->
-    <div class="navbar-user">
-      <template v-if="isLoggedIn">
-        <div class="avatar">{{ nicknameInitial }}</div>
-        <button class="nav-link muted" @click="handleLogout">로그아웃</button>
-      </template>
-      <template v-else>
-        <button class="nav-btn-outline" @click="$router.push('/login')">로그인</button>
-        <button class="nav-btn-primary" @click="$router.push('/register')">회원가입</button>
-      </template>
+      <div class="user-actions">
+        <template v-if="isLoggedIn">
+          <div class="user-avatar">
+            <span class="avatar-text">{{ nicknameInitial }}</span>
+          </div>
+          <button class="btn-text" @click="handleLogout">로그아웃</button>
+        </template>
+        <template v-else>
+          <button class="btn-outline" @click="$router.push('/login')">로그인</button>
+          <button class="btn-primary" @click="$router.push('/register')">회원가입</button>
+        </template>
+      </div>
+
     </div>
   </nav>
 </template>
@@ -40,11 +42,10 @@ import api from '../api/axios'
 
 const router = useRouter()
 
-// [캡슐화] 사용자 상태를 컴포넌트 내부에서 관리
+// [정보은닉] 사용자 상태 보호
 const nickname = ref('')
 const isLoggedIn = ref(false)
 
-// 네비게이션 링크 목록
 const navLinks = [
   { path: '/main', label: '홈' },
   { path: '/words', label: '단어 목록' },
@@ -52,12 +53,10 @@ const navLinks = [
   { path: '/error-note', label: '오답노트' },
 ]
 
-// [캡슐화] 닉네임 첫 글자만 아바타에 표시
 const nicknameInitial = computed(() => {
-  return nickname.value ? nickname.value.charAt(0) : '?'
+  return nickname.value ? nickname.value.charAt(0).toUpperCase() : 'U'
 })
 
-// [캡슐화] 로그인 상태 확인 — 세션 기반이므로 /auth/me 호출
 const checkLoginStatus = async () => {
   try {
     const res = await api.get('/auth/me')
@@ -68,16 +67,16 @@ const checkLoginStatus = async () => {
   }
 }
 
-// [캡슐화] 로그아웃 처리
 const handleLogout = async () => {
   try {
     await api.post('/api/users/logout')
   } catch {
-    // 로그아웃 실패해도 홈으로 이동
+    console.error('Logout Error')
+  } finally {
+    isLoggedIn.value = false
+    nickname.value = ''
+    router.push('/')
   }
-  isLoggedIn.value = false
-  nickname.value = ''
-  router.push('/')
 }
 
 onMounted(() => {
@@ -86,99 +85,163 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* [모듈화] NavBar 전용 스타일 */
-.navbar {
-  background: rgba(247, 246, 242, 0.95);
-  border-bottom: 1px solid var(--border);
-  padding: 0 2rem;
-  height: 60px;
+/* 전역 테마 색상 (보라색 포인트) */
+:root {
+  --primary-color: #6B4EFF;
+  --primary-hover: #5538e6;
+  --bg-color: #ffffff;
+  --text-main: #111827;
+  --text-muted: #6b7280;
+  --border-color: #f3f4f6;
+}
+
+/* 네비게이션 래퍼 */
+.navbar-container {
+  background-color: var(--bg-color, #ffffff);
+  border-bottom: 1px solid var(--border-color, #f3f4f6);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.navbar-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 70px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: blur(8px);
 }
 
-.navbar-logo {
-  font-family: 'Syne', sans-serif;
-  font-size: 22px;
+/* ====================================================
+   [버그 픽스 1] 로고 찌그러짐 및 납작해짐 완벽 방어 
+==================================================== */
+.brand-logo {
+  font-family: 'Pretendard', 'Inter', sans-serif;
+  font-size: 24px;
   font-weight: 800;
-  letter-spacing: -1.5px;
-  color: var(--text);
-  cursor: pointer;
-  user-select: none;
+  color: var(--text-main, #111827);
+  text-decoration: none;
+  
+  /* 자간을 넓게 주어 폰트가 깨져도 납작해 보이지 않게 설계 */
+  letter-spacing: -0.5px; 
+  
+  /* 레이아웃 수축 절대 방지 */
+  flex-shrink: 0 !important; 
+  white-space: nowrap;
+  display: inline-block;
 }
-.navbar-logo span { color: var(--accent); }
 
-.navbar-links {
+.brand-logo .highlight {
+  color: var(--primary-color, #6B4EFF);
+}
+
+/* 링크 스타일 */
+.nav-links {
   display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.nav-link {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--muted);
-  padding: 6px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  border: none;
-  background: none;
-  font-family: 'DM Sans', sans-serif;
-  transition: color 0.15s, background 0.15s;
-}
-.nav-link:hover { color: var(--text); background: var(--border); }
-.nav-link.active { color: var(--accent); background: #EEE9FF; }
-.nav-link.muted { font-size: 13px; }
-
-.navbar-user {
-  display: flex;
-  align-items: center;
   gap: 8px;
 }
 
-/* [캡슐화] 아바타 스타일 */
-.avatar {
-  width: 32px;
-  height: 32px;
+.nav-item {
+  text-decoration: none;
+  color: var(--text-muted, #6b7280);
+  font-weight: 600;
+  font-size: 15px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.nav-item:hover {
+  color: var(--text-main, #111827);
+  background-color: #f9fafb;
+}
+
+.nav-item.active {
+  color: var(--primary-color, #6B4EFF);
+  background-color: #f0f0ff;
+}
+
+/* 유저 액션 및 버튼 영역 */
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ====================================================
+   [버그 픽스 2] 아바타 및 숫자 뱃지 타원형 변형 원천 차단
+==================================================== */
+.user-avatar {
+  background-color: var(--primary-color, #6B4EFF);
+  color: #ffffff;
   border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 500;
+  
+  /* 크기를 고정하고 최소 크기를 보장 (찌그러짐 방지) */
+  width: 36px;
+  height: 36px;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  
+  /* 가로세로 1:1 비율을 강제하여 완벽한 원형 유지 */
+  aspect-ratio: 1 / 1 !important;
+  
+  /* 어떠한 경우에도 외부 레이아웃에 의해 줄어들지 않음 */
+  flex-shrink: 0 !important; 
+  
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 8px rgba(107, 78, 255, 0.2);
 }
 
-.nav-btn-outline {
-  font-size: 13px;
-  font-weight: 500;
-  padding: 6px 16px;
-  border-radius: 8px;
+.avatar-text {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  /* 글자가 눌리지 않도록 여백 제거 및 폭 교정 */
+  margin: 0;
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 공통 버튼 스타일 */
+button {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
-  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0; /* 버튼 압착 방지 */
+}
+
+.btn-text {
   background: none;
-  color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-  transition: border-color 0.15s;
-}
-.nav-btn-outline:hover { border-color: var(--accent); color: var(--accent); }
-
-.nav-btn-primary {
-  font-size: 13px;
-  font-weight: 500;
-  padding: 6px 16px;
-  border-radius: 8px;
-  cursor: pointer;
   border: none;
-  background: var(--accent);
-  color: #fff;
-  font-family: 'DM Sans', sans-serif;
-  transition: background 0.15s;
+  color: var(--text-muted, #6b7280);
+  padding: 8px 12px;
 }
-.nav-btn-primary:hover { background: var(--accent-hover); }
+.btn-text:hover { color: var(--text-main, #111827); }
+
+.btn-outline {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: var(--text-main, #111827);
+  padding: 8px 18px;
+}
+.btn-outline:hover { background: #f9fafb; border-color: #9ca3af; }
+
+.btn-primary {
+  background: var(--primary-color, #6B4EFF);
+  border: none;
+  color: #ffffff;
+  padding: 8px 20px;
+  box-shadow: 0 2px 4px rgba(107, 78, 255, 0.1);
+}
+.btn-primary:hover { background: var(--primary-hover, #5538e6); }
 </style>
