@@ -221,11 +221,17 @@ onMounted(() => {
   text-align: center;
 }
 .stat-num {
-  font-family: 'Syne', sans-serif;
-  font-size: 30px;
-  font-weight: 800;
-  color: var(--accent);
-  letter-spacing: -1px;
+  /* [버그 픽스 핵심] 넓적하게 디자인된 Syne 폰트를 버리고, 비율이 바른 DM Sans 폰트로 교체합니다. */
+  font-family: 'DM Sans', 'Pretendard', sans-serif !important;
+  
+  /* DM Sans 폰트에 맞게 크기와 굵기를 살짝 조정하여 밸런스를 맞춥니다. */
+  font-size: 32px !important;
+  font-weight: 700 !important; 
+  color: var(--accent) !important;
+  
+  /* 숫자 폭을 일정하게 유지 */
+  font-variant-numeric: tabular-nums !important;
+  line-height: 1.2 !important;
 }
 .stat-label {
   font-size: 13px;

@@ -1,4 +1,4 @@
-/* [공통 속성] 폰트, 컬러 변수, 전체 화면 배경 및 중앙 정렬 */
+/* src/assets/main.css */
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
 :root {
@@ -21,6 +21,14 @@
   padding: 0;
 }
 
+html {
+  /* [핵심 해결] 스크롤바가 생길 자리를 미리 예약해둡니다. 
+     이 설정을 하면 스크롤바가 나타나거나 사라져도 
+     본문 내용이 왼쪽/오른쪽으로 1px도 움직이지 않습니다. */
+  scrollbar-gutter: stable;
+}
+
+/* 1. 회원님의 원본 코드로 완벽 복구 (화면 정중앙 기둥 형태) */
 body {
   background: var(--bg);
   font-family: 'DM Sans', sans-serif;
@@ -29,6 +37,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0;
 }
 
 #app {
@@ -36,4 +45,27 @@ body {
   max-width: 100vw;
   display: flex;
   justify-content: center;
+}
+
+/* 2. 모든 화면을 '원본 메인 화면'의 실제 크기(720px)로 완벽하게 묶어버립니다 */
+.navbar-content,
+.main-content,
+.words-content,
+.quiz-content {
+  /* 기존에 860으로 억지로 늘렸던 것을 취소하고, 원본의 예쁜 비율이었던 720px로 강제 고정합니다. */
+  /* (만약 이 크기보다 조금 더 넓거나 좁은 것을 원하시면 720px 숫자만 조절해 주시면 됩니다!) */
+  width: 720px !important; 
+  max-width: 100% !important;
+  margin: 0 auto !important;
+}
+
+/* 로그인 창 정렬 보존 */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+  width: 100%;
 }
