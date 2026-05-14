@@ -5,9 +5,12 @@ import com.team6.voca.domain.word.WordLevel;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.List;
+
 public record WordUpdateRequest(
         @NotBlank String englishWord,
         @NotBlank String koreanMeaning,
         @NotNull PartOfSpeech partOfSpeech,
-        @NotNull WordLevel level
+        @NotNull WordLevel level,
+        List<WordExampleRequest> examples
 ) {}

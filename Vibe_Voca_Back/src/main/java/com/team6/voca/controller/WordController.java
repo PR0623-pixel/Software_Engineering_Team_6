@@ -1,6 +1,7 @@
 package com.team6.voca.controller;
 
 import com.team6.voca.dto.word.WordCreateRequest;
+import com.team6.voca.dto.word.WordDetailResponseDto;
 import com.team6.voca.dto.word.WordResponseDto;
 import com.team6.voca.dto.word.WordUpdateRequest;
 import com.team6.voca.service.WordService;
@@ -28,6 +29,11 @@ public class WordController {
 
     // [캡슐화] 단어 목록을 가져오는 복잡한 비즈니스 로직과 트랜잭션 처리는 wordService 내부로 캡슐화되어 있습니다.
     // Controller는 단지 메서드를 호출하고 그 결과를 HTTP 형식(ResponseEntity)으로 포장하는 역할만 수행합니다.
+    @GetMapping("/{id}")
+    public ResponseEntity<WordDetailResponseDto> getWordById(@PathVariable Long id) {
+        return ResponseEntity.ok(wordService.getWordById(id));
+    }
+
     @GetMapping
     public ResponseEntity<List<WordResponseDto>> getAllWords() {
         List<WordResponseDto> words = wordService.getAllWords();
@@ -43,7 +49,7 @@ public class WordController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<WordResponseDto> updateWord(
+    public ResponseEntity<WordDetailResponseDto> updateWord(
             @PathVariable Long id,
             @Valid @RequestBody WordUpdateRequest request) {
         return ResponseEntity.ok(wordService.updateWord(id, request));
