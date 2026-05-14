@@ -3,7 +3,9 @@ package com.team6.voca.service;
 
 import com.team6.voca.common.exception.NotFoundException;
 import com.team6.voca.domain.word.Word;
+import com.team6.voca.domain.word.WordExample;
 import com.team6.voca.dto.word.WordCreateRequest;
+import com.team6.voca.dto.word.WordDetailResponseDto;
 import com.team6.voca.dto.word.WordResponseDto;
 import com.team6.voca.dto.word.WordUpdateRequest;
 import com.team6.voca.repository.WordRepository;
@@ -25,6 +27,12 @@ public class WordService {
     // 구체적인 데이터 접근 기술(구현체)이 변경되더라도 Service 로직은 영향을 받지 않습니다.
     private final WordRepository wordRepository;
 
+    public WordDetailResponseDto getWordById(Long id) {
+        Word word = wordRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("단어를 찾을 수 없습니다."));
+        return WordDetailResponseDto.from(word);
+    }
+
     public List<WordResponseDto> getAllWords() {
         return wordRepository.findAll().stream()
                 .map(WordResponseDto::from)
@@ -43,11 +51,21 @@ public class WordService {
     }
 
     @Transactional
-    public WordResponseDto updateWord(Long id, WordUpdateRequest request) {
+    public WordDetailResponseDto updateWord(Long id, WordUpdateRequest request) {
         Word word = wordRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("단어를 찾을 수 없습니다."));
         word.update(request.englishWord(), request.koreanMeaning(), request.partOfSpeech(), request.level());
-        return WordResponseDto.from(word);
+        if (request.examples() != null) {
+            List<WordExample> newExamples = request.examples().stream()
+                    .map(e -> WordExample.builder()
+                            .exampleSentence(e.exampleSentence())
+                            .koreanTranslation(e.koreanTranslation())
+                            .word(word)
+                            .build())
+                    .toList();
+            word.replaceExamples(newExamples);
+        }
+        return WordDetailResponseDto.from(word);
     }
 
     @Transactional
