@@ -1,7 +1,7 @@
-// src/main/java/com/team6/voca/controller/ErrorNoteController.java
 package com.team6.voca.controller;
 
-import com.team6.voca.dto.quiz.QuizQuestionResponseDto;
+// [수정] 기존 QuizQuestionResponseDto 대신 오답노트 전용 DTO를 import 합니다.
+import com.team6.voca.dto.ErrorNote.ErrorNoteQuizResponseDto;
 import com.team6.voca.service.ErrorNoteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,17 +18,14 @@ public class ErrorNoteController {
 
     /**
      * [모듈화] 오답노트 목록 조회
-     * 사용자가 오답노트 페이지 진입 시 전체 틀린 단어 리스트를 반환합니다.
      */
     @GetMapping
-    public ResponseEntity<List<?>> getErrorNotes() {
-        // TODO: ErrorNoteResponseDto 리스트 반환 로직 구현
-        return ResponseEntity.ok().build();
+    public ResponseEntity<List<?>> getErrorNotes(@RequestParam Long userId) {
+        return ResponseEntity.ok(errorNoteService.getErrorNotes(userId));
     }
 
     /**
      * [정보은닉] 오답노트 메모 수정 (Update)
-     * 특정 오답 단어에 대해 사용자가 작성한 메모를 수정합니다.
      */
     @PatchMapping("/{id}/memo")
     public ResponseEntity<Void> updateMemo(@PathVariable Long id, @RequestBody String memo) {
@@ -38,7 +35,6 @@ public class ErrorNoteController {
 
     /**
      * [모듈화] 오답노트 단건 삭제 (Delete)
-     * 암기가 완료된 단어를 오답노트에서 제거합니다.
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteErrorNote(@PathVariable Long id) {
@@ -48,14 +44,15 @@ public class ErrorNoteController {
 
     /**
      * [재사용성/모듈화] 오답노트 기반 재테스트 생성
-     * 퀴즈 도메인이 아닌 오답노트 도메인에서 오답들로만 구성된 퀴즈를 생성하여 반환합니다.
-     * 프론트엔드에서 '오답노트 재테스트' 버튼 클릭 시 이 엔드포인트를 호출합니다.
+     * 🚨 [수정 완료] 반환 타입을 ErrorNoteQuizResponseDto로 맞추고, userId 파라미터를 추가했습니다.
      */
     @GetMapping("/quiz")
-    public ResponseEntity<List<QuizQuestionResponseDto>> generateErrorNoteQuiz(
+    public ResponseEntity<List<ErrorNoteQuizResponseDto>> generateErrorNoteQuiz(
+            @RequestParam Long userId,
             @RequestParam(defaultValue = "10") int count) {
-        // [캡슐화] 내부적인 퀴즈 생성 알고리즘은 Service 계층에 숨기고 결과를 DTO로 반환합니다.
-        List<QuizQuestionResponseDto> questions = errorNoteService.generateQuizFromErrors(count);
-        return ResponseEntity.ok(questions);
+        
+        // [캡슐화] 내부적인 퀴즈 생성 알고리즘은 Service 계층에 숨기고 전용 DTO로 반환받습니다.
+        List<ErrorNoteQuizResponseDto> quizData = errorNoteService.generateQuizFromErrors(userId, count);
+        return ResponseEntity.ok(quizData);
     }
 }
