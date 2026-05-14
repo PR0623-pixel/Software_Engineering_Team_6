@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
     email       VARCHAR(255)    NOT NULL UNIQUE                            COMMENT '로그인 이메일',
     password    VARCHAR(255)    NOT NULL                                   COMMENT '비밀번호',
     nickname    VARCHAR(50)     NOT NULL                                   COMMENT '사용자 닉네임',
+    level       VARCHAR(30)     NULL                                       COMMENT '유저 학습 레벨 (null이면 테스트 미완료)',
     profile_img VARCHAR(500)    NULL                                       COMMENT '프로필 이미지 URL',
     status      VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE'                  COMMENT '계정 상태 (ACTIVE/INACTIVE)',
     created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP         COMMENT '계정 생성 일시',

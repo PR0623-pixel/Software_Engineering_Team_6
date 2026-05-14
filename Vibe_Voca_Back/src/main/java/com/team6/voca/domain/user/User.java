@@ -22,6 +22,10 @@ public class User {
     private String profileImg;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "level")
+    private UserLevel level;
+
+    @Enumerated(EnumType.STRING)
     private UserStatus status = UserStatus.ACTIVE;
 
     public User() {}
@@ -53,4 +57,7 @@ public class User {
 
     public UserStatus getStatus() { return status; }
     public void setStatus(UserStatus status) { this.status = status; }
+
+    public UserLevel getLevel() { return level; }
+    public void setLevel(UserLevel level) { this.level = level; }
 }
