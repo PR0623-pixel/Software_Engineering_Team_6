@@ -5,6 +5,7 @@ import com.team6.voca.common.exception.NotFoundException;
 import com.team6.voca.domain.quiz.ErrorNote;
 import com.team6.voca.domain.quiz.QuizResult;
 import com.team6.voca.domain.word.Word;
+import com.team6.voca.domain.word.WordLevel;
 import com.team6.voca.dto.quiz.QuizQuestionResponseDto;
 import com.team6.voca.dto.quiz.QuizSubmitRequestDto;
 import com.team6.voca.repository.QuizResultRepository;
@@ -16,6 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,6 +41,18 @@ public class QuizService {
         return targetWords.stream()
                 .map(word -> QuizQuestionResponseDto.of(word.getId(), word.getKoreanMeaning(), word.getEnglishWord()))
                 .collect(Collectors.toList());
+    }
+
+    public List<QuizQuestionResponseDto> generateLevelTestQuestions() {
+        List<QuizQuestionResponseDto> questions = new ArrayList<>();
+        for (WordLevel level : WordLevel.values()) {
+            List<Word> words = wordRepository.findRandomWordsByLevel(level.name(), PageRequest.of(0, 3));
+            words.stream()
+                    .map(w -> QuizQuestionResponseDto.of(w.getId(), w.getKoreanMeaning(), w.getEnglishWord()))
+                    .forEach(questions::add);
+        }
+        Collections.shuffle(questions);
+        return questions;
     }
 
     /**
