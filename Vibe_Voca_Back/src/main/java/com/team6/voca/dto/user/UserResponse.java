@@ -1,8 +1,6 @@
 package com.team6.voca.dto.user;
 
-import com.team6.voca.domain.user.User;
-import com.team6.voca.domain.user.UserStatus;
-import com.team6.voca.domain.user.UserLevel;
+import com.team6.voca.domain.user.*;
 
 public class UserResponse {
 
@@ -12,15 +10,17 @@ public class UserResponse {
     private final UserLevel level;
     private final UserStatus status;
     private final String profileImg;
+    private UserRole role;
 
     public UserResponse(Long id, String email, String nickname,
-                        UserLevel level, UserStatus status, String profileImg) {
+                        UserLevel level, UserStatus status, String profileImg, UserRole role) {
         this.id = id;
         this.email = email;
         this.nickname = nickname;
         this.level = level;
         this.status = status;
         this.profileImg = profileImg;
+        this.role = role;
     }
 
     public static UserResponse from(User user) {
@@ -30,7 +30,8 @@ public class UserResponse {
             user.getNickname(),
             user.getLevel(),
             user.getStatus(),
-            user.getProfileImg()
+            user.getProfileImg(),
+            user.getRole()
         );
     }
 
@@ -40,5 +41,6 @@ public class UserResponse {
     public UserLevel getLevel() { return level; }
     public UserStatus getStatus() { return status; }
     public String getProfileImg() { return profileImg; }
+    public UserRole getRole() {return role;}
 }
 

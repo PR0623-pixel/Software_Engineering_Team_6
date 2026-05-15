@@ -5,6 +5,7 @@ import com.team6.voca.common.exception.UnauthorizedException;
 import com.team6.voca.domain.user.User;
 import com.team6.voca.domain.user.UserStatus;
 import com.team6.voca.domain.user.UserLevel;
+import com.team6.voca.domain.user.UserRole;
 import com.team6.voca.dto.user.ChangePasswordRequest;
 import com.team6.voca.dto.user.UpdateProfileRequest;
 import com.team6.voca.dto.user.UserRegisterRequest;
@@ -40,6 +41,7 @@ public class UserService {
         user.setNickname(request.getNickname());
         user.setStatus(UserStatus.ACTIVE);
         user.setProfileImg(DEFAULT_PROFILE_IMAGE);
+        user.setRole(UserRole.USER);
 
         // DB 저장
         User saved = userRepository.save(user);

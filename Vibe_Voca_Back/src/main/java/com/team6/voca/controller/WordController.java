@@ -5,7 +5,13 @@ import com.team6.voca.dto.word.WordDetailResponseDto;
 import com.team6.voca.dto.word.WordResponseDto;
 import com.team6.voca.dto.word.WordUpdateRequest;
 import com.team6.voca.service.WordService;
+import com.team6.voca.domain.user.UserRole;
+import com.team6.voca.common.exception.UnauthorizedException;
+
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,8 +33,14 @@ public class WordController {
 
     private final WordService wordService;
 
-    // [캡슐화] 단어 목록을 가져오는 복잡한 비즈니스 로직과 트랜잭션 처리는 wordService 내부로 캡슐화되어 있습니다.
-    // Controller는 단지 메서드를 호출하고 그 결과를 HTTP 형식(ResponseEntity)으로 포장하는 역할만 수행합니다.
+    // [모듈화] 관리자 권한 체크 로직을 별도의 private 메서드로 분리하여 코드의 재사용성을 높였습니다.
+    private void validateAdminRole(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null || !UserRole.ADMIN.name().equals(session.getAttribute("role"))) {
+            throw new UnauthorizedException("해당 기능을 수행할 관리자 권한이 없습니다.");
+        }
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<WordDetailResponseDto> getWordById(@PathVariable Long id) {
         return ResponseEntity.ok(wordService.getWordById(id));
@@ -36,27 +48,32 @@ public class WordController {
 
     @GetMapping
     public ResponseEntity<List<WordResponseDto>> getAllWords() {
-        List<WordResponseDto> words = wordService.getAllWords();
-
-        // [정보은닉] DB의 테이블 구조가 그대로 반영된 Entity(Word)를 반환하지 않고,
-        // 클라이언트에게 꼭 필요한 정보만 담긴 DTO(WordResponseDto)를 반환하여 내부 데이터 구조를 숨깁니다.
-        return ResponseEntity.ok(words);
+        return ResponseEntity.ok(wordService.getAllWords());
     }
 
+    // 아래의 C, U, D API는 관리자만 접근 가능하도록 검증 로직 추가
     @PostMapping
-    public ResponseEntity<WordResponseDto> createWord(@Valid @RequestBody WordCreateRequest request) {
+    public ResponseEntity<WordResponseDto> createWord(
+            @Valid @RequestBody WordCreateRequest request, 
+            HttpServletRequest httpRequest) {
+        validateAdminRole(httpRequest);
         return ResponseEntity.ok(wordService.createWord(request));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<WordDetailResponseDto> updateWord(
             @PathVariable Long id,
-            @Valid @RequestBody WordUpdateRequest request) {
+            @Valid @RequestBody WordUpdateRequest request,
+            HttpServletRequest httpRequest) {
+        validateAdminRole(httpRequest);
         return ResponseEntity.ok(wordService.updateWord(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteWord(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteWord(
+            @PathVariable Long id, 
+            HttpServletRequest httpRequest) {
+        validateAdminRole(httpRequest);
         wordService.deleteWord(id);
         return ResponseEntity.noContent().build();
     }

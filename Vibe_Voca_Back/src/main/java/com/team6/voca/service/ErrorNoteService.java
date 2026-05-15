@@ -11,6 +11,7 @@ import com.team6.voca.repository.WordRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -98,25 +99,33 @@ public class ErrorNoteService {
      * [캡슐화] 사지선다 보기 생성 (정답 1개 + 무작위 오답 3개)
      * 이 메서드는 외부(Controller 등)에 노출되지 않으며 오로지 서비스 내부에서만 사용됩니다.
      */
-    private List<String> createMultipleChoices(Word correctWord) {
-        List<String> choices = new ArrayList<>();
+// [캡슐화/정보은닉] 사지선다 보기를 생성하는 복잡한 과정은 private 메서드로 숨겨 외부(Controller 등)에서 알지 못하게 합니다.
+    private List<String> createMultipleChoices(Word word) {
+        List<String> options = new ArrayList<>();
         
-        // 정답 뜻 추가
-        choices.add(correctWord.getKoreanMeaning());
-
-        // [다형성 활용] WordRepository의 기능을 재사용하여 현재 단어가 아닌 무작위 단어 3개를 추출
-        List<Word> distractors = wordRepository.findRandomWordsNotMatching(correctWord.getId(), 3);
-        distractors.forEach(d -> choices.add(d.getKoreanMeaning()));
-
-        // 보기 개수가 4개가 안 될 경우를 대비한 방어 로직 (데이터가 적은 초기 개발 단계용)
-        int dummyCount = 1;
-        while (choices.size() < 4) {
-            choices.add("임시 보기 " + dummyCount++);
+        // 1. 실제 정답의 뜻을 보기에 추가합니다.
+        options.add(word.getKoreanMeaning());
+        
+        // 2. 정답을 제외한 무작위 오답 3개 추출
+        // [수정 사항] wordid를 word.getId()로, limit를 3으로 직접 지정하여 변수 미정의 오류를 해결합니다.
+        List<Word> distractors = wordRepository.findRandomWordsNotMatching(
+                word.getId(), 
+                PageRequest.of(0, 3)
+        );
+        
+        // 3. 추출된 오답 단어들의 뜻을 options 리스트에 추가합니다.
+        for (Word distractor : distractors) {
+            options.add(distractor.getKoreanMeaning());
         }
-
-        // 보기의 순서를 무작위로 섞어 항상 1번이 정답이 되지 않게 함
-        Collections.shuffle(choices);
         
-        return choices;
+        // 4. (선택적 예외 처리) DB에 저장된 전체 단어가 4개 미만일 경우를 대비한 더미 데이터 삽입 방어 로직
+        while (options.size() < 4) {
+            options.add("임시 오답 " + options.size());
+        }
+        
+        // 5. 정답이 항상 첫 번째에 위치하지 않도록 Java 내장 기능을 활용해 보기를 무작위로 섞습니다.
+        Collections.shuffle(options);
+        
+        return options;
     }
 }

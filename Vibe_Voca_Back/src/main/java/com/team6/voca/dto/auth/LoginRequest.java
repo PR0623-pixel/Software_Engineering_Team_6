@@ -12,6 +12,10 @@ public class LoginRequest {
     @NotBlank(message = "비밀번호는 필수입니다.")
     private String password;
 
+    //관리자 모드 로그인 여부 판단 플래그
+    private boolean adminLogin;
+
     public String getEmail() {return email;}
     public String getPassword() {return password;}
+    public boolean isAdminLogin() {return adminLogin;}
 }

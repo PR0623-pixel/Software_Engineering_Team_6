@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import com.team6.voca.common.exception.NotFoundException;
 import com.team6.voca.common.exception.UnauthorizedException;
 import com.team6.voca.domain.user.User;
+import com.team6.voca.domain.user.UserRole;
 import com.team6.voca.dto.auth.LoginRequest;
 import com.team6.voca.dto.user.UserResponse;
 import com.team6.voca.repository.UserRepository;
@@ -27,6 +28,11 @@ public class AuthService {
 
         if(!user.getPassword().equals(request.getPassword())) {
             throw new UnauthorizedException("잘못된 비밀번호입니다.");
+        }
+        
+        // [모듈화] 관리자 모드로 로그인을 시도했는데, 실제 권한이 관리자가 아닌 경우 예외 처리
+        if (request.isAdminLogin() && user.getRole() != UserRole.ADMIN) {
+            throw new UnauthorizedException("관리자 권한이 없습니다.");
         }
 
         return UserResponse.from(user);
