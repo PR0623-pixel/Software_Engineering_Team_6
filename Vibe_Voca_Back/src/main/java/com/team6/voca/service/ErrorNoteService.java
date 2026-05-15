@@ -5,6 +5,7 @@ import com.team6.voca.common.exception.NotFoundException;
 import com.team6.voca.domain.quiz.ErrorNote;
 import com.team6.voca.domain.word.Word;
 import com.team6.voca.domain.word.WordExample;
+import com.team6.voca.dto.ErrorNote.ErrorNoteListResponseDto;
 import com.team6.voca.dto.ErrorNote.ErrorNoteQuizResponseDto;
 import com.team6.voca.repository.ErrorNoteRepository;
 import com.team6.voca.repository.WordRepository;
@@ -30,8 +31,13 @@ public class ErrorNoteService {
     /**
      * 사용자의 전체 오답노트 목록 조회
      */
-    public List<ErrorNote> getErrorNotes(Long userId) {
-        return errorNoteRepository.findAllByUserId(userId);
+    public List<ErrorNoteListResponseDto> getErrorNotes(Long userId) {
+        List<ErrorNote> errorNotes = errorNoteRepository.findAllByUserId(userId);
+        
+        // [다형성/캡슐화] Stream API와 DTO 내부의 from 메서드를 활용하여 안전하게 데이터를 매핑합니다.
+        return errorNotes.stream()
+                .map(ErrorNoteListResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     /**

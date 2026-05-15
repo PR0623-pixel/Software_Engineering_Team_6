@@ -2,7 +2,10 @@ package com.team6.voca.controller;
 
 // [수정] 기존 QuizQuestionResponseDto 대신 오답노트 전용 DTO를 import 합니다.
 import com.team6.voca.dto.ErrorNote.ErrorNoteQuizResponseDto;
+import com.team6.voca.dto.ErrorNote.ErrorNoteListResponseDto;
 import com.team6.voca.service.ErrorNoteService;
+
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +23,7 @@ public class ErrorNoteController {
      * [모듈화] 오답노트 목록 조회
      */
     @GetMapping
-    public ResponseEntity<List<?>> getErrorNotes(@RequestParam Long userId) {
+    public ResponseEntity<List<ErrorNoteListResponseDto>> getErrorNotes(@RequestParam Long userId) {
         return ResponseEntity.ok(errorNoteService.getErrorNotes(userId));
     }
 
