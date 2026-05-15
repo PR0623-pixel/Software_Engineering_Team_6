@@ -249,11 +249,12 @@ const finishQuiz = async () => {
       userId: userId.value,
       answers: answers.value,
     });
+    // 성공적으로 서버에 저장되었을 때만 결과창으로 이동
+    phase.value = 'result'; 
   } catch (error) {
-    // ✅ 수정: 에러가 발생했을 때 콘솔에서 확인할 수 있도록 로그 추가
     console.error('퀴즈 결과 제출 실패:', error.response?.data || error.message);
+    alert('퀴즈 결과를 서버에 저장하는 중 오류가 발생했습니다.');
   }
-  phase.value = 'result';
 };
 
 const resetQuiz = () => {
@@ -425,7 +426,7 @@ const resetQuiz = () => {
 .score-circle.great { border-color: #3B6D11; background: #EAF3DE; color: #3B6D11; }
 .score-circle.ok    { border-color: #854F0B; background: #FAEEDA; color: #854F0B; }
 .score-circle.poor  { border-color: #A32D2D; background: #FCEBEB; color: #A32D2D; }
-.score-num   { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; line-height: 1; }
+.score-num   {  font-size: 32px; font-weight: 800; line-height: 1; }
 .score-total { font-size: 13px; font-weight: 500; }
 .score-msg   { font-size: 14px; color: var(--muted); margin: 0; }
 
