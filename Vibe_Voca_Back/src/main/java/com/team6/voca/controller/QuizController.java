@@ -24,6 +24,11 @@ public class QuizController {
         return ResponseEntity.ok(quizService.generateQuestions(count, level));
     }
 
+    @GetMapping("/level-test")
+    public ResponseEntity<List<QuizQuestionResponseDto>> generateLevelTest() {
+        return ResponseEntity.ok(quizService.generateLevelTestQuestions());
+    }
+
     // [모듈화] 일괄 제출(Batch)된 답안 데이터를 Service로 넘겨 채점을 지시합니다.
     @PostMapping("/submit")
     public ResponseEntity<Void> submitQuiz(@RequestBody QuizSubmitRequestDto request) {

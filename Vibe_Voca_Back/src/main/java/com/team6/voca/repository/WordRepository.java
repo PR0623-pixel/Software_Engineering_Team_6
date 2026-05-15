@@ -27,5 +27,11 @@ public interface WordRepository extends JpaRepository<Word, Long> {
     // 외부 비즈니스 로직은 DB 쿼리의 페이징 방식이 어떻게 동작하는지 몰라도 Pageable 객체만 넘겨주면 무작위 단어를 얻을 수 있습니다.
     @Query(value = "SELECT * FROM words WHERE id != :wordId ORDER BY RAND()", nativeQuery = true)
     List<Word> findRandomWordsNotMatching(@Param("wordId") Long wordId, Pageable pageable);
+
+    // [다형성] JpaRepository 인터페이스를 상속받아, 데이터베이스 접근에 필요한 다양한 구현체를 다형성 있게 활용합니다
+
+    // 3. 특정 레벨의 단어를 무작위로 N개 추출
+    @Query(value = "SELECT * FROM words WHERE level = :level ORDER BY RAND()", nativeQuery = true)
+    List<Word> findRandomWordsByLevel(@Param("level") String level, Pageable pageable);
 }
 
