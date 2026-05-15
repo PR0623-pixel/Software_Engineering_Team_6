@@ -23,7 +23,17 @@ public interface WordRepository extends JpaRepository<Word, Long> {
     @Query(value = "SELECT korean_meaning FROM words WHERE id != :excludeWordId ORDER BY RAND()", nativeQuery = true)
     List<String> findRandomMeaningsExcluding(@Param("excludeWordId") Long excludeWordId, Pageable pageable);
 
+    // [다형성] JpaRepository 인터페이스를 상속받아, 데이터베이스 접근에 필요한 다양한 구현체를 다형성 있게 활용합니다
+
     // 3. 특정 레벨의 단어를 무작위로 N개 추출
     @Query(value = "SELECT * FROM words WHERE level = :level ORDER BY RAND()", nativeQuery = true)
     List<Word> findRandomWordsByLevel(@Param("level") String level, Pageable pageable);
+
+    /**
+     * [모듈화/정보은닉] 정답 단어를 제외한 나머지 단어들 중 지정된 개수(limit)만큼 무작위로 추출합니다.
+     * Service 계층에서는 복잡한 Random 추출 쿼리를 알 필요 없이 이 메서드만 호출하도록 정보은닉을 달성합니다.
+     * * 주의: DB 테이블명이 'word'인지 'words'인지에 따라 FROM 절의 이름을 맞춰주세요. (기본값: word)
+     */
+    @Query(value = "SELECT * FROM word WHERE id != :wordId ORDER BY RAND() LIMIT :limit", nativeQuery = true)
+    List<Word> findRandomWordsNotMatching(@Param("wordId") Long wordId, @Param("limit") int limit);
 }
