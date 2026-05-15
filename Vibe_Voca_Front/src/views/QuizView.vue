@@ -3,14 +3,15 @@
     <NavBar />
     <div class="quiz-content">
 
-      <!-- 1. Setup -->
       <div v-if="phase === 'setup'" class="phase-box">
         <header class="quiz-header">
-          <h1 class="page-title">단어 퀴즈</h1>
-          <p class="page-sub">한국어 뜻을 보고 영어 단어를 입력하세요</p>
+          <h1 class="page-title">{{ isErrorNoteMode ? '오답노트 재테스트' : '단어 퀴즈' }}</h1>
+          <p class="page-sub">
+            {{ isErrorNoteMode ? '오답노트에 저장된 모든 단어를 복습합니다.' : '한국어 뜻을 보고 영어 단어를 입력하세요' }}
+          </p>
         </header>
 
-        <div class="option-group">
+        <div v-if="!isErrorNoteMode" class="option-group">
           <label class="option-label">문제 수</label>
           <div class="filter-row">
             <button
@@ -26,11 +27,10 @@
         <p v-if="setupError" class="error-msg">{{ setupError }}</p>
 
         <button class="btn-primary" :disabled="setupLoading" @click="startQuiz">
-          {{ setupLoading ? '불러오는 중...' : '퀴즈 시작하기' }}
+          {{ setupLoading ? '불러오는 중...' : (isErrorNoteMode ? '복습 시작하기' : '퀴즈 시작하기') }}
         </button>
       </div>
 
-      <!-- 2. Quiz -->
       <div v-else-if="phase === 'quiz'" class="phase-box">
         <div class="progress-row">
           <span class="progress-text">{{ currentIndex + 1 }} / {{ questions.length }}</span>
@@ -73,7 +73,6 @@
         </div>
       </div>
 
-      <!-- 3. Result -->
       <div v-else-if="phase === 'result'" class="phase-box result-box">
         <div class="score-wrap">
           <div class="score-circle" :class="scoreClass">
@@ -106,12 +105,27 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
 import api from '../api/axios';
 
-const phase = ref('setup');
+const route = useRoute();
+const isErrorNoteMode = computed(() => route.query.mode === 'errorNote');
 
+// ✅ 세션에서 로그인 유저 정보 가져오기
+const userId = ref(null);
+
+onMounted(async () => {
+  try {
+    const res = await api.get('/auth/me');
+    userId.value = res.data.id;
+  } catch {
+    // 로그인 안 된 상태 — 필요하면 router.push('/login') 추가
+  }
+});
+
+const phase = ref('setup');
 const setupCount = ref(10);
 const setupLoading = ref(false);
 const setupError = ref('');
@@ -150,10 +164,33 @@ const startQuiz = async () => {
   setupError.value = '';
   setupLoading.value = true;
   try {
-    const { data } = await api.get('/api/quizzes/generate', { params: { count: setupCount.value } });
-    const list = Array.isArray(data) ? data : data.questions ?? [];
-    if (list.length === 0) { setupError.value = '퀴즈 문제가 없습니다.'; return; }
-    questions.value = list;
+    let response;
+
+    if (isErrorNoteMode.value) {
+      // ✅ 오답노트 재테스트: userId만 넘기고 count는 백엔드 default에 맡김
+      response = await api.get('/api/error-notes/quiz', {
+        params: { userId: userId.value }
+      });
+    } else {
+      response = await api.get('/api/quizzes/generate', {
+        params: { count: setupCount.value }
+      });
+    }
+
+    const data = response.data;
+
+    // ✅ DTO 필드명(wordId, questionMeaning, correctAnswer)이 이미 일치하므로 그대로 매핑
+    questions.value = data.map(q => ({
+      wordId: q.wordId,
+      questionMeaning: q.questionMeaning,
+      correctAnswer: q.correctAnswer,
+    }));
+
+    if (questions.value.length === 0) {
+      setupError.value = '문제가 없습니다.';
+      return;
+    }
+
     currentIndex.value = 0;
     typedAnswer.value = '';
     isAnswered.value = false;
@@ -163,8 +200,8 @@ const startQuiz = async () => {
     phase.value = 'quiz';
     await nextTick();
     answerInput.value?.focus();
-  } catch {
-    setupError.value = '퀴즈를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
+  } catch (error) {
+    setupError.value = '퀴즈를 불러오지 못했습니다.';
   } finally {
     setupLoading.value = false;
   }
@@ -185,11 +222,12 @@ const submitAnswer = () => {
       wordId: currentQ.value.wordId,
       questionMeaning: currentQ.value.questionMeaning,
       correctAnswer: correct,
-      submittedWord: submitted,
+      submittedWord: submitted, // 화면 표시용 (유지해도 무방)
     });
   }
 
-  answers.value.push({ wordId: currentQ.value.wordId, submittedWord: submitted });
+  // ✅ 수정: 백엔드 DTO에 맞게 submittedWord -> submittedAnswer 로 변경
+  answers.value.push({ wordId: currentQ.value.wordId, submittedAnswer: submitted }); 
 };
 
 const nextQuestion = async () => {
@@ -207,9 +245,13 @@ const nextQuestion = async () => {
 
 const finishQuiz = async () => {
   try {
-    await api.post('/api/quizzes/submit', { userId: null, answers: answers.value });
-  } catch {
-    // 결과 화면은 보여줌
+    await api.post('/api/quizzes/submit', {
+      userId: userId.value,
+      answers: answers.value,
+    });
+  } catch (error) {
+    // ✅ 수정: 에러가 발생했을 때 콘솔에서 확인할 수 있도록 로그 추가
+    console.error('퀴즈 결과 제출 실패:', error.response?.data || error.message);
   }
   phase.value = 'result';
 };
@@ -323,10 +365,7 @@ const resetQuiz = () => {
   line-height: 1.2;
 }
 
-.input-row {
-  display: flex;
-  gap: 8px;
-}
+.input-row { display: flex; gap: 8px; }
 
 .answer-input {
   flex: 1;
@@ -370,7 +409,6 @@ const resetQuiz = () => {
 .result-badge.correct { background: #EAF3DE; color: #3B6D11; }
 .result-badge.wrong   { background: #FCEBEB; color: #A32D2D; }
 
-/* Result */
 .result-box { align-items: center; }
 .score-wrap { text-align: center; }
 .score-circle {

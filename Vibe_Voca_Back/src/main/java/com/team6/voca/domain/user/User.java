@@ -22,11 +22,16 @@ public class User {
     private String profileImg;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "level")
-    private UserLevel level;
+    @Column(name = "level", nullable = false)
+    private UserLevel level = UserLevel.STARTER;
 
     @Enumerated(EnumType.STRING)
     private UserStatus status = UserStatus.ACTIVE;
+
+    // [캡슐화] 권한 필드를 추가하고 외부에서 함부로 수정하지 못하도록 접근 제어자를 private으로 설정합니다. (SPRINT2)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role = UserRole.USER; // 기본값은 USER
 
     public User() {}
 
@@ -60,4 +65,9 @@ public class User {
 
     public UserLevel getLevel() { return level; }
     public void setLevel(UserLevel level) { this.level = level; }
+
+    // Admin에 관한 Getter/Setter 설정
+
+    public UserRole getRole() {return role;}
+    public void setRole(UserRole role) {this.role = role;}
 }

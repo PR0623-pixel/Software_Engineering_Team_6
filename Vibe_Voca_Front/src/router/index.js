@@ -1,4 +1,4 @@
-// src/router/index.js
+
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
@@ -8,6 +8,7 @@ import WordsView from '../views/WordsView.vue'
 import QuizView from '../views/QuizView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import LevelTestView from '../views/LevelTestView.vue'
+import ErrorNoteView from '../views/ErrorNoteView.vue';
 
 const routes = [
   { path: '/',            name: 'home',       component: HomeView },
@@ -17,7 +18,8 @@ const routes = [
   { path: '/words',       name: 'words',      component: WordsView },
   { path: '/quiz',        name: 'quiz',       component: QuizView },
   { path: '/level-test',  name: 'levelTest',  component: LevelTestView },
-  { path: '/me',          name: 'profile',    component: ProfileView }
+  { path: '/me',          name: 'profile',    component: ProfileView },
+  {path: '/error-note', name: 'errorNote', component: ErrorNoteView }
 ]
 
 const router = createRouter({
