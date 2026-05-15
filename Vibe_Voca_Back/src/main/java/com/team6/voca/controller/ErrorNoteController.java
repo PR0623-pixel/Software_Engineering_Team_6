@@ -24,6 +24,7 @@ public class ErrorNoteController {
      */
     @GetMapping
     public ResponseEntity<List<ErrorNoteListResponseDto>> getErrorNotes(@RequestParam Long userId) {
+        // [정보은닉] 서비스 계층에서 가공된 안전한 DTO만을 프론트엔드로 전달합니다.
         return ResponseEntity.ok(errorNoteService.getErrorNotes(userId));
     }
 

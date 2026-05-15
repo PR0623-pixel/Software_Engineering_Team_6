@@ -3,34 +3,33 @@
     <NavBar />
     <div class="quiz-content">
 
-      <div v-if="phase === 'setup'" class="phase-box">
+      <!-- 1. Intro -->
+      <div v-if="phase === 'intro'" class="phase-box">
         <header class="quiz-header">
-          <h1 class="page-title">{{ isErrorNoteMode ? '오답노트 재테스트' : '단어 퀴즈' }}</h1>
-          <p class="page-sub">
-            {{ isErrorNoteMode ? '오답노트에 저장된 모든 단어를 복습합니다.' : '한국어 뜻을 보고 영어 단어를 입력하세요' }}
-          </p>
+          <h1 class="page-title">레벨 테스트</h1>
+          <p class="page-sub">나의 영어 수준을 측정하는 15문제 테스트예요</p>
         </header>
-
-        <div v-if="!isErrorNoteMode" class="option-group">
-          <label class="option-label">문제 수</label>
-          <div class="filter-row">
-            <button
-              v-for="n in [5, 10, 20]"
-              :key="n"
-              class="filter-btn"
-              :class="{ active: setupCount === n }"
-              @click="setupCount = n"
-            >{{ n }}문제</button>
+        <div class="intro-info">
+          <div class="info-row">
+            <span class="info-icon">📝</span>
+            <span>총 15문제 (레벨별 3문제씩)</span>
+          </div>
+          <div class="info-row">
+            <span class="info-icon">🎯</span>
+            <span>한국어 뜻을 보고 영어 단어를 입력하세요</span>
+          </div>
+          <div class="info-row">
+            <span class="info-icon">⚡</span>
+            <span>완료 후 나의 레벨이 자동으로 설정됩니다</span>
           </div>
         </div>
-
-        <p v-if="setupError" class="error-msg">{{ setupError }}</p>
-
-        <button class="btn-primary" :disabled="setupLoading" @click="startQuiz">
-          {{ setupLoading ? '불러오는 중...' : (isErrorNoteMode ? '복습 시작하기' : '퀴즈 시작하기') }}
+        <p v-if="loadError" class="error-msg">{{ loadError }}</p>
+        <button class="btn-primary" :disabled="loading" @click="startTest">
+          {{ loading ? '문제 불러오는 중...' : '테스트 시작하기' }}
         </button>
       </div>
 
+      <!-- 2. Quiz -->
       <div v-else-if="phase === 'quiz'" class="phase-box">
         <div class="progress-row">
           <span class="progress-text">{{ currentIndex + 1 }} / {{ questions.length }}</span>
@@ -73,31 +72,25 @@
         </div>
       </div>
 
+      <!-- 3. Result -->
       <div v-else-if="phase === 'result'" class="phase-box result-box">
         <div class="score-wrap">
           <div class="score-circle" :class="scoreClass">
             <span class="score-num">{{ correctCount }}</span>
             <span class="score-total">/ {{ questions.length }}</span>
           </div>
-          <p class="score-msg">{{ scoreMessage }}</p>
+          <p class="score-msg">{{ correctCount }}개 정답</p>
         </div>
 
-        <div v-if="wrongAnswers.length" class="wrong-section">
-          <h3 class="wrong-title">틀린 단어 ({{ wrongAnswers.length }}개)</h3>
-          <ul class="wrong-list">
-            <li v-for="w in wrongAnswers" :key="w.wordId" class="wrong-item">
-              <div class="wrong-word-info">
-                <span class="w-en">{{ w.correctAnswer }}</span>
-                <span class="w-meaning">{{ w.questionMeaning }}</span>
-              </div>
-              <span class="w-my">내 답: {{ w.submittedWord || '(미입력)' }}</span>
-            </li>
-          </ul>
+        <div class="level-result">
+          <p class="level-label">나의 레벨</p>
+          <div class="level-badge" :class="levelClass">{{ levelDisplay }}</div>
+          <p class="level-desc">{{ levelDesc }}</p>
         </div>
 
-        <div v-else class="perfect-msg">🎉 모든 단어를 맞혔어요!</div>
+        <p v-if="saveError" class="error-msg">{{ saveError }}</p>
 
-        <button class="btn-primary" @click="resetQuiz">다시 시작</button>
+        <button class="btn-primary" @click="goToMain">메인으로 돌아가기</button>
       </div>
 
     </div>
@@ -105,45 +98,62 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, computed, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
 import api from '../api/axios';
 
-const route = useRoute();
-const isErrorNoteMode = computed(() => route.query.mode === 'errorNote');
+const router = useRouter();
 
-// ✅ 세션에서 로그인 유저 정보 가져오기
-const userId = ref(null);
-
-onMounted(async () => {
-  try {
-    const res = await api.get('/auth/me');
-    userId.value = res.data.id;
-  } catch {
-    // 로그인 안 된 상태 — 필요하면 router.push('/login') 추가
-  }
-});
-
-const phase = ref('setup');
-const setupCount = ref(10);
-const setupLoading = ref(false);
-const setupError = ref('');
+const phase = ref('intro');
+const loading = ref(false);
+const loadError = ref('');
+const saveError = ref('');
 
 const questions = ref([]);
 const currentIndex = ref(0);
 const typedAnswer = ref('');
 const isAnswered = ref(false);
 const isCorrect = ref(false);
-const answers = ref([]);
-
 const correctCount = ref(0);
-const wrongAnswers = ref([]);
 
 const answerInput = ref(null);
 
 const currentQ = computed(() => questions.value[currentIndex.value] ?? {});
 const progressPct = computed(() => ((currentIndex.value + 1) / questions.value.length) * 100);
+
+const determinedLevel = computed(() => {
+  const s = correctCount.value;
+  if (s >= 13) return 'HIGHLEVEL';
+  if (s >= 10) return 'ADVANCED';
+  if (s >= 7)  return 'INTERMEDIATE';
+  if (s >= 4)  return 'BEGINNER';
+  return 'NEWBIE';
+});
+
+const levelDisplay = computed(() => {
+  const labels = {
+    NEWBIE:       'NEWBIE (입문)',
+    BEGINNER:     'BEGINNER (초급)',
+    INTERMEDIATE: 'INTERMEDIATE (중급)',
+    ADVANCED:     'ADVANCED (고급)',
+    HIGHLEVEL:    'HIGHLEVEL (최고급)',
+  };
+  return labels[determinedLevel.value];
+});
+
+const levelDesc = computed(() => {
+  const descs = {
+    NEWBIE:       '기초 단어를 차근차근 익혀봐요!',
+    BEGINNER:     '기본기가 있네요! 꾸준히 연습하면 금방 늘어요.',
+    INTERMEDIATE: '중간 수준이에요. 심화 단어에 도전해 보세요!',
+    ADVANCED:     '실력이 좋네요! 조금만 더 하면 최고급이에요.',
+    HIGHLEVEL:    '훌륭해요! 최고 수준의 실력을 갖추었어요!',
+  };
+  return descs[determinedLevel.value];
+});
+
+const levelClass = computed(() => determinedLevel.value.toLowerCase());
 
 const scoreClass = computed(() => {
   const r = correctCount.value / questions.value.length;
@@ -152,82 +162,33 @@ const scoreClass = computed(() => {
   return 'poor';
 });
 
-const scoreMessage = computed(() => {
-  const r = correctCount.value / questions.value.length;
-  if (r === 1) return '완벽해요! 모든 단어를 알고 있네요 🎉';
-  if (r >= 0.8) return '훌륭해요! 조금만 더 연습하면 완벽해요';
-  if (r >= 0.5) return '절반 이상 맞혔어요. 꾸준히 연습해봐요';
-  return '틀린 단어를 다시 복습해봐요';
-});
-
-const startQuiz = async () => {
-  setupError.value = '';
-  setupLoading.value = true;
+const startTest = async () => {
+  loadError.value = '';
+  loading.value = true;
   try {
-    let response;
-
-    if (isErrorNoteMode.value) {
-      // ✅ 오답노트 재테스트: userId만 넘기고 count는 백엔드 default에 맡김
-      response = await api.get('/api/error-notes/quiz', {
-        params: { userId: userId.value }
-      });
-    } else {
-      response = await api.get('/api/quizzes/generate', {
-        params: { count: setupCount.value }
-      });
-    }
-
-    const data = response.data;
-
-    // ✅ DTO 필드명(wordId, questionMeaning, correctAnswer)이 이미 일치하므로 그대로 매핑
-    questions.value = data.map(q => ({
-      wordId: q.wordId,
-      questionMeaning: q.questionMeaning,
-      correctAnswer: q.correctAnswer,
-    }));
-
-    if (questions.value.length === 0) {
-      setupError.value = '문제가 없습니다.';
-      return;
-    }
-
+    const { data } = await api.get('/api/quizzes/level-test');
+    if (!data.length) { loadError.value = '문제를 불러오지 못했습니다.'; return; }
+    questions.value = data;
     currentIndex.value = 0;
     typedAnswer.value = '';
     isAnswered.value = false;
-    answers.value = [];
     correctCount.value = 0;
-    wrongAnswers.value = [];
     phase.value = 'quiz';
     await nextTick();
     answerInput.value?.focus();
-  } catch (error) {
-    setupError.value = '퀴즈를 불러오지 못했습니다.';
+  } catch {
+    loadError.value = '문제를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
   } finally {
-    setupLoading.value = false;
+    loading.value = false;
   }
 };
 
 const submitAnswer = () => {
   if (isAnswered.value || !typedAnswer.value.trim()) return;
-
   const submitted = typedAnswer.value.trim();
-  const correct = currentQ.value.correctAnswer;
-  isCorrect.value = submitted.toLowerCase() === correct.toLowerCase();
+  isCorrect.value = submitted.toLowerCase() === currentQ.value.correctAnswer.toLowerCase();
   isAnswered.value = true;
-
-  if (isCorrect.value) {
-    correctCount.value++;
-  } else {
-    wrongAnswers.value.push({
-      wordId: currentQ.value.wordId,
-      questionMeaning: currentQ.value.questionMeaning,
-      correctAnswer: correct,
-      submittedWord: submitted, // 화면 표시용 (유지해도 무방)
-    });
-  }
-
-  // ✅ 수정: 백엔드 DTO에 맞게 submittedWord -> submittedAnswer 로 변경
-  answers.value.push({ wordId: currentQ.value.wordId, submittedAnswer: submitted }); 
+  if (isCorrect.value) correctCount.value++;
 };
 
 const nextQuestion = async () => {
@@ -239,32 +200,21 @@ const nextQuestion = async () => {
     await nextTick();
     answerInput.value?.focus();
   } else {
-    await finishQuiz();
+    await finishTest();
   }
 };
 
-const finishQuiz = async () => {
-  try {
-    await api.post('/api/quizzes/submit', {
-      userId: userId.value,
-      answers: answers.value,
-    });
-  } catch (error) {
-    // ✅ 수정: 에러가 발생했을 때 콘솔에서 확인할 수 있도록 로그 추가
-    console.error('퀴즈 결과 제출 실패:', error.response?.data || error.message);
-  }
+const finishTest = async () => {
   phase.value = 'result';
+  try {
+    await api.patch('/api/users/me/level', { level: determinedLevel.value });
+  } catch {
+    saveError.value = '레벨 저장에 실패했습니다. 다시 시도해주세요.';
+  }
 };
 
-const resetQuiz = () => {
-  phase.value = 'setup';
-  questions.value = [];
-  currentIndex.value = 0;
-  typedAnswer.value = '';
-  isAnswered.value = false;
-  answers.value = [];
-  correctCount.value = 0;
-  wrongAnswers.value = [];
+const goToMain = () => {
+  router.push('/main');
 };
 </script>
 
@@ -299,27 +249,23 @@ const resetQuiz = () => {
 }
 .page-sub { font-size: 14px; color: var(--muted); margin: 0; }
 
-.option-group { display: flex; flex-direction: column; gap: 10px; }
-.option-label {
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--muted);
-}
-.filter-row { display: flex; gap: 6px; flex-wrap: wrap; }
-.filter-btn {
-  padding: 5px 14px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
+.intro-info {
   background: #fff;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.15s;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+.info-icon { font-size: 18px; }
 
 .error-msg { font-size: 13px; color: #E24B4A; margin: 0; }
 
@@ -409,7 +355,9 @@ const resetQuiz = () => {
 .result-badge.correct { background: #EAF3DE; color: #3B6D11; }
 .result-badge.wrong   { background: #FCEBEB; color: #A32D2D; }
 
+/* Result */
 .result-box { align-items: center; }
+
 .score-wrap { text-align: center; }
 .score-circle {
   width: 100px;
@@ -429,23 +377,37 @@ const resetQuiz = () => {
 .score-total { font-size: 13px; font-weight: 500; }
 .score-msg   { font-size: 14px; color: var(--muted); margin: 0; }
 
-.wrong-section { width: 100%; }
-.wrong-title { font-size: 14px; font-weight: 600; color: var(--text); margin: 0 0 10px; }
-.wrong-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.wrong-item {
+.level-result {
+  text-align: center;
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
+  border-radius: var(--radius);
+  padding: 24px 32px;
+  width: 100%;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
-.wrong-word-info { display: flex; flex-direction: column; gap: 2px; }
-.w-en      { font-size: 15px; font-weight: 500; color: var(--text); }
-.w-meaning { font-size: 12px; color: #3B6D11; }
-.w-my      { font-size: 12px; color: #A32D2D; flex-shrink: 0; }
-
-.perfect-msg { font-size: 16px; color: var(--text); text-align: center; }
+.level-label {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  margin: 0;
+}
+.level-badge {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  padding: 6px 20px;
+  border-radius: 99px;
+}
+.level-badge.newbie       { background: #F1EFE8; color: #5F5E5A; }
+.level-badge.beginner     { background: #E6F9F1; color: #0F6E56; }
+.level-badge.intermediate { background: #FFF4E0; color: #BA7517; }
+.level-badge.advanced     { background: #FAEEE7; color: #993C1D; }
+.level-badge.highlevel    { background: #FCEBEB; color: #A32D2D; }
+.level-desc { font-size: 14px; color: var(--muted); margin: 0; }
 </style>
