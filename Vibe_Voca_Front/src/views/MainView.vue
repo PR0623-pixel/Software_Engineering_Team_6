@@ -1,8 +1,18 @@
 <!-- src/views/MainView.vue -->
 <template>
   <div class="main-page">
-    <!-- [모듈화] 네비게이션 바를 별도 컴포넌트로 분리 -->
     <NavBar />
+
+    <!-- 레벨 테스트 안내 모달 -->
+    <div v-if="showLevelModal" class="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-icon">🎯</div>
+        <h2 class="modal-title">처음 접속이시군요!</h2>
+        <p class="modal-desc">레벨 테스트를 진행해야 합니다!<br>15개의 단어 문제로 실력을 측정해 드려요.</p>
+        <button class="btn btn-purple modal-btn" @click="goToLevelTest">레벨 테스트 진행하기</button>
+        <button class="modal-skip" @click="showLevelModal = false">나중에 하기</button>
+      </div>
+    </div>
 
     <div class="main-content">
 
@@ -85,8 +95,28 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import NavBar from '../components/NavBar.vue'
 import api from '../api/axios'
+
+const router = useRouter()
+const showLevelModal = ref(false)
+
+const checkUserLevel = async () => {
+  try {
+    const { data } = await api.get('/auth/me')
+    if (data.level === null || data.level === undefined) {
+      showLevelModal.value = true
+    }
+  } catch {
+    // 비로그인 상태면 모달 표시 안 함
+  }
+}
+
+const goToLevelTest = () => {
+  showLevelModal.value = false
+  router.push('/level-test')
+}
 
 // [캡슐화] 통계 데이터 — 추후 API 연결
 const stats = ref([
@@ -97,10 +127,11 @@ const stats = ref([
 
 // [모듈화] 메뉴 항목 데이터 분리
 const menuItems = [
-  { icon: '📚', label: '단어 목록', path: '/words',      desc: 'TOEIC 필수 단어를 레벨별로 확인하세요' },
-  { icon: '✏️', label: '단어 퀴즈', path: '/quiz',       desc: '4지선다 퀴즈로 실력을 테스트하세요' },
-  { icon: '📝', label: '오답노트',  path: '/error-note', desc: '틀린 단어를 모아 반복 학습하세요' },
-  { icon: '👤', label: '마이페이지',path: '/me',         desc: '프로필과 학습 현황을 확인하세요' },
+  { icon: '📚', label: '단어 목록',   path: '/words',       desc: 'TOEIC 필수 단어를 레벨별로 확인하세요' },
+  { icon: '✏️', label: '단어 퀴즈',  path: '/quiz',        desc: '4지선다 퀴즈로 실력을 테스트하세요' },
+  { icon: '🎯', label: '레벨 테스트', path: '/level-test',  desc: '나의 현재 영어 수준을 측정해보세요' },
+  { icon: '📝', label: '오답노트',   path: '/error-note',  desc: '틀린 단어를 모아 반복 학습하세요' },
+  { icon: '👤', label: '마이페이지', path: '/me',          desc: '프로필과 학습 현황을 확인하세요' },
 ]
 
 // [캡슐화] 단어 목록 상태 관리
@@ -134,6 +165,7 @@ const getLevelClass = (level) => {
 
 onMounted(() => {
   fetchWords()
+  checkUserLevel()
 })
 </script>
 
@@ -348,4 +380,52 @@ onMounted(() => {
   font-size: 14px;
   color: var(--muted);
 }
+
+/* ── 레벨 테스트 모달 ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-box {
+  background: #fff;
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  max-width: 360px;
+  width: calc(100% - 2rem);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+.modal-icon { font-size: 40px; }
+.modal-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+.modal-desc {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+}
+.modal-btn { margin-top: 4px; }
+.modal-skip {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+}
+.modal-skip:hover { color: var(--text); }
 </style>

@@ -3,6 +3,7 @@ package com.team6.voca.service;
 import com.team6.voca.domain.quiz.ErrorNote;
 import com.team6.voca.domain.quiz.QuizResult;
 import com.team6.voca.domain.word.Word;
+import com.team6.voca.domain.word.WordLevel;
 import com.team6.voca.dto.quiz.QuizQuestionResponseDto;
 import com.team6.voca.dto.quiz.QuizSubmitRequestDto;
 import com.team6.voca.repository.QuizResultRepository;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,6 +39,18 @@ public class QuizService {
         return targetWords.stream()
                 .map(word -> QuizQuestionResponseDto.of(word.getId(), word.getKoreanMeaning(), word.getEnglishWord()))
                 .collect(Collectors.toList());
+    }
+
+    public List<QuizQuestionResponseDto> generateLevelTestQuestions() {
+        List<QuizQuestionResponseDto> questions = new ArrayList<>();
+        for (WordLevel level : WordLevel.values()) {
+            List<Word> words = wordRepository.findRandomWordsByLevel(level.name(), PageRequest.of(0, 3));
+            words.stream()
+                    .map(w -> QuizQuestionResponseDto.of(w.getId(), w.getKoreanMeaning(), w.getEnglishWord()))
+                    .forEach(questions::add);
+        }
+        Collections.shuffle(questions);
+        return questions;
     }
 
     // [캡슐화] 채점, 점수 계산, 오답노트 생성이라는 복잡한 상태 변경 로직을 하나의 트랜잭션으로 묶어 캡슐화합니다.

@@ -22,4 +22,8 @@ public interface WordRepository extends JpaRepository<Word, Long> {
     // 2. 특정 단어를 제외한 무작위 단어 뜻 N개 추출 (LIMIT 제거)
     @Query(value = "SELECT korean_meaning FROM words WHERE id != :excludeWordId ORDER BY RAND()", nativeQuery = true)
     List<String> findRandomMeaningsExcluding(@Param("excludeWordId") Long excludeWordId, Pageable pageable);
+
+    // 3. 특정 레벨의 단어를 무작위로 N개 추출
+    @Query(value = "SELECT * FROM words WHERE level = :level ORDER BY RAND()", nativeQuery = true)
+    List<Word> findRandomWordsByLevel(@Param("level") String level, Pageable pageable);
 }

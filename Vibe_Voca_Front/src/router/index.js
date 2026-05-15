@@ -7,15 +7,17 @@ import MainView from '../views/MainView.vue'
 import WordsView from '../views/WordsView.vue'
 import QuizView from '../views/QuizView.vue'
 import ProfileView from '../views/ProfileView.vue'
+import LevelTestView from '../views/LevelTestView.vue'
 
 const routes = [
-  { path: '/',         name: 'home',     component: HomeView },
-  { path: '/login',    name: 'login',    component: LoginView },
-  { path: '/register', name: 'register', component: RegisterView },
-  { path: '/main',     name: 'main',     component: MainView },
-  { path: '/words',    name: 'words',    component: WordsView },
-  { path: '/quiz',     name: 'quiz',     component: QuizView },
-  { path: '/me',       name: 'profile',  component: ProfileView }
+  { path: '/',            name: 'home',       component: HomeView },
+  { path: '/login',       name: 'login',      component: LoginView },
+  { path: '/register',    name: 'register',   component: RegisterView },
+  { path: '/main',        name: 'main',       component: MainView },
+  { path: '/words',       name: 'words',      component: WordsView },
+  { path: '/quiz',        name: 'quiz',       component: QuizView },
+  { path: '/level-test',  name: 'levelTest',  component: LevelTestView },
+  { path: '/me',          name: 'profile',    component: ProfileView }
 ]
 
 const router = createRouter({
