@@ -1,10 +1,10 @@
 -- 관리자 계정
-INSERT IGNORE INTO users (email, password, nickname, status) VALUES
-('admin@vibevoca.com', 'admin1234', '관리자', 'ACTIVE');
+INSERT IGNORE INTO users (email, password, nickname, status, role) VALUES
+('admin@vibevoca.com', 'admin1234', '관리자', 'ACTIVE', 'ADMIN');
 
 -- 테스트 사용자 계정
-INSERT IGNORE INTO users (email, password, nickname, status) VALUES
-('test@vibevoca.com', 'user1234', '테스트유저', 'ACTIVE');
+INSERT IGNORE INTO users (email, password, nickname, status, role) VALUES
+('test@vibevoca.com', 'user1234', '테스트유저', 'ACTIVE', 'USER');
 
 -- TOEIC 기본 단어 50개 (english_word, korean_meaning, part_of_speech, level)
 INSERT IGNORE INTO words (english_word, korean_meaning, part_of_speech, level) VALUES
