@@ -4,7 +4,7 @@
     <div class="words-content">
       <header class="words-header">
         <h1 class="page-title">단어장</h1>
-        <button class="btn-add" @click="openCreateModal">+ 단어 추가</button>
+        <button v-if="isAdmin" class="btn-add" @click="openCreateModal">+ 단어 추가</button>
       </header>
 
       <div class="controls">
@@ -64,7 +64,7 @@
               {{ difficultyLabel(selectedWord.level) }}
             </span>
           </div>
-          <div class="modal-actions-row">
+          <div v-if="isAdmin" class="modal-actions-row">
             <button class="btn-edit" @click="openEditModal(selectedWord)">수정</button>
             <button class="btn-delete" @click="openDeleteConfirm(selectedWord)">삭제</button>
           </div>
@@ -135,6 +135,7 @@
 import { ref, computed, onMounted } from 'vue';
 import NavBar from '../components/NavBar.vue';
 import api from '../api/axios';
+import { isAdmin } from '../composables/useAuth';
 
 const levels = [
   { value: '', label: '전체' },
