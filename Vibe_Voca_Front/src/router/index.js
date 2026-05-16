@@ -19,7 +19,8 @@ const routes = [
   { path: '/quiz',        name: 'quiz',       component: QuizView },
   { path: '/level-test',  name: 'levelTest',  component: LevelTestView },
   { path: '/me',          name: 'profile',    component: ProfileView },
-  {path: '/error-note', name: 'errorNote', component: ErrorNoteView }
+  {path: '/error-note', name: 'errorNote', component: ErrorNoteView },
+  { path: '/quiz/error-note', name: 'errorNoteQuiz', component: QuizView },
 ]
 
 const router = createRouter({
