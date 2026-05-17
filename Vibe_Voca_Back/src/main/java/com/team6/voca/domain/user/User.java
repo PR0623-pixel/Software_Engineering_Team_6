@@ -70,4 +70,16 @@ public class User {
 
     public UserRole getRole() {return role;}
     public void setRole(UserRole role) {this.role = role;}
+
+    @Column(nullable = false)
+    private int points = 0;
+
+    public int getPoints() { return points; }
+
+    public void addPoints(int amount) { this.points += amount; }
+
+    public void deductPoints(int amount) {
+        if (this.points < amount) throw new IllegalArgumentException("포인트가 부족합니다.");
+        this.points -= amount;
+    }
 }

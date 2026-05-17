@@ -11,9 +11,10 @@ public class UserResponse {
     private final UserStatus status;
     private final String profileImg;
     private UserRole role;
+    private final int points;
 
     public UserResponse(Long id, String email, String nickname,
-                        UserLevel level, UserStatus status, String profileImg, UserRole role) {
+                        UserLevel level, UserStatus status, String profileImg, UserRole role, int points) {
         this.id = id;
         this.email = email;
         this.nickname = nickname;
@@ -21,6 +22,7 @@ public class UserResponse {
         this.status = status;
         this.profileImg = profileImg;
         this.role = role;
+        this.points = points;
     }
 
     public static UserResponse from(User user) {
@@ -31,7 +33,8 @@ public class UserResponse {
             user.getLevel(),
             user.getStatus(),
             user.getProfileImg(),
-            user.getRole()
+            user.getRole(),
+            user.getPoints()
         );
     }
 
@@ -41,6 +44,7 @@ public class UserResponse {
     public UserLevel getLevel() { return level; }
     public UserStatus getStatus() { return status; }
     public String getProfileImg() { return profileImg; }
-    public UserRole getRole() {return role;}
+    public UserRole getRole() { return role; }
+    public int getPoints() { return points; }
 }
 

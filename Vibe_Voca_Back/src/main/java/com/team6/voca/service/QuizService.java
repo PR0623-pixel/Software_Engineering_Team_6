@@ -30,6 +30,7 @@ public class QuizService {
     private final WordRepository wordRepository;
     private final QuizResultRepository quizResultRepository;
     private final UserRepository userRepository;
+    private final PointService pointService;
 
     // [캡슐화] 퀴즈를 어떻게 생성하고(Random) 문제를 어떻게 구성하는지에 대한
     // 모든 복잡한 비즈니스 로직을 이 메서드 하나로 캡슐화하여 컨트롤러에 제공합니다.
@@ -103,5 +104,8 @@ public class QuizService {
 
         // 6. DB 저장 (CascadeType.ALL 설정 시 ErrorNote도 함께 저장됩니다)
         quizResultRepository.save(result);
+
+        // 7. 포인트 지급 (첫 퀴즈면 DAILY_BONUS 추가)
+        pointService.awardQuizPoints(request.userId());
     }
 }

@@ -99,3 +99,15 @@ FROM words w WHERE w.english_word = 'productive';
 INSERT IGNORE INTO word_examples (word_id, example_sentence, korean_translation)
 SELECT w.id, 'You must qualify for the position before applying.', '지원하기 전에 해당 직책의 자격을 갖춰야 합니다.'
 FROM words w WHERE w.english_word = 'qualify';
+
+-- 포인트 정책 기본값
+INSERT IGNORE INTO point_policies (policy_key, points, description) VALUES
+('QUIZ_COMPLETE', 10, '퀴즈 완료 기본 포인트'),
+('DAILY_BONUS',   10, '하루 첫 퀴즈 추가 포인트');
+
+-- 샘플 상점 아이템
+INSERT IGNORE INTO shop_items (name, description, price) VALUES
+('골든 배지',     '황금빛 특별 배지 컬렉터블',   300),
+('스터디 스티커', '귀여운 공부 스티커 컬렉터블',  150),
+('트로피 아이콘', '최상위 학습자 트로피',         500),
+('별 뱃지',       '빛나는 별 모양 배지',          100);
