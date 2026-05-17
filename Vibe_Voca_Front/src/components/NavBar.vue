@@ -39,7 +39,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
-import { setRole, clearRole } from '../composables/useAuth'
+import { setRole, clearRole, setPoints } from '../composables/useAuth'
 
 const router = useRouter()
 
@@ -63,6 +63,7 @@ const checkLoginStatus = async () => {
     const res = await api.get('/auth/me')
     nickname.value = res.data.nickname
     setRole(res.data.role)
+    setPoints(res.data.points ?? 0)
     isLoggedIn.value = true
   } catch {
     isLoggedIn.value = false

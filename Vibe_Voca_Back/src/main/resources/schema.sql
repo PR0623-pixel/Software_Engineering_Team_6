@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     profile_img VARCHAR(500)    NULL                                       COMMENT '프로필 이미지 URL',
     status      VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE'                  COMMENT '계정 상태 (ACTIVE/INACTIVE)',
     role        VARCHAR(20)     NOT NULL DEFAULT 'USER'                    COMMENT '해당 계정의 관리자 권한 유무',
+    points      INT             NOT NULL DEFAULT 0                         COMMENT '보유 포인트',
     created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP         COMMENT '계정 생성 일시',
     updated_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP
                                 ON UPDATE CURRENT_TIMESTAMP                COMMENT '마지막 수정 일시',
@@ -58,4 +59,36 @@ CREATE TABLE IF NOT EXISTS error_notes (
     PRIMARY KEY (id),
     FOREIGN KEY (quiz_result_id) REFERENCES quiz_results(id) ON DELETE CASCADE,
     FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS shop_items (
+    id          BIGINT       NOT NULL AUTO_INCREMENT                       COMMENT '자동 증가 고유 ID',
+    name        VARCHAR(100) NOT NULL                                      COMMENT '아이템 이름',
+    description VARCHAR(255) NULL                                          COMMENT '아이템 설명',
+    price       INT          NOT NULL                                      COMMENT '포인트 가격',
+    image_url   VARCHAR(500) NULL                                          COMMENT '아이템 이미지 URL',
+    is_deleted  TINYINT(1)   NOT NULL DEFAULT 0                           COMMENT '소프트 삭제 여부',
+    created_at  DATETIME     NULL                                          COMMENT '등록 일시',
+    updated_at  DATETIME     NULL                                          COMMENT '마지막 수정 일시',
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS user_purchases (
+    id           BIGINT   NOT NULL AUTO_INCREMENT                          COMMENT '자동 증가 고유 ID',
+    user_id      BIGINT   NOT NULL                                         COMMENT 'users.id 참조',
+    shop_item_id BIGINT   NOT NULL                                         COMMENT 'shop_items.id 참조',
+    price_paid   INT      NOT NULL                                         COMMENT '구매 시점 가격 스냅샷',
+    created_at   DATETIME NULL                                             COMMENT '구매 일시',
+    updated_at   DATETIME NULL                                             COMMENT '마지막 수정 일시',
+    PRIMARY KEY (id),
+    FOREIGN KEY (user_id)      REFERENCES users(id)      ON DELETE CASCADE,
+    FOREIGN KEY (shop_item_id) REFERENCES shop_items(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS point_policies (
+    id          BIGINT       NOT NULL AUTO_INCREMENT                       COMMENT '자동 증가 고유 ID',
+    policy_key  VARCHAR(50)  NOT NULL UNIQUE                               COMMENT '정책 키 (QUIZ_COMPLETE / DAILY_BONUS)',
+    points      INT          NOT NULL                                      COMMENT '지급 포인트',
+    description VARCHAR(255) NULL                                          COMMENT '정책 설명',
+    PRIMARY KEY (id)
 );

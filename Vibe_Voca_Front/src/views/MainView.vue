@@ -94,10 +94,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import NavBar from '../components/NavBar.vue'
 import api from '../api/axios'
+import { userPoints } from '../composables/useAuth'
 
 const router = useRouter()
 const showLevelModal = ref(false)
@@ -126,13 +127,14 @@ const stats = ref([
 ])
 
 // [모듈화] 메뉴 항목 데이터 분리
-const menuItems = [
+const menuItems = computed(() => [
   { icon: '📚', label: '단어 목록',   path: '/words',       desc: 'TOEIC 필수 단어를 레벨별로 확인하세요' },
   { icon: '✏️', label: '단어 퀴즈',  path: '/quiz',        desc: '영어 단어 실력을 테스트하세요' },
   { icon: '🎯', label: '레벨 테스트', path: '/level-test',  desc: '나의 현재 영어 수준을 측정해보세요' },
   { icon: '📝', label: '오답노트',   path: '/error-note',  desc: '틀린 단어를 모아 반복 학습하세요' },
+  { icon: '🏪', label: '포인트 상점', path: '/point-shop',  desc: `보유 포인트: ${userPoints.value} P` },
   { icon: '👤', label: '마이페이지', path: '/me',          desc: '프로필과 학습 현황을 확인하세요' },
-]
+])
 
 // [캡슐화] 단어 목록 상태 관리
 const words = ref([])
