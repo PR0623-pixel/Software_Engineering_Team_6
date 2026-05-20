@@ -68,7 +68,7 @@
               <div class="word-ko">{{ word.koreanMeaning }}</div>
             </div>
             <span class="word-badge" :class="getLevelClass(word.level)">
-              {{ word.level }}
+              {{ getLevelLabel(word.level) }}
             </span>
           </div>
 
@@ -130,6 +130,18 @@ const getLevelClass = (level) => {
     HIGHLEVEL: 'highlevel',
   }
   return map[level] || ''
+}
+
+// [모듈화] 백엔드 난이도 enum과 화면의 1~5 레벨 표기를 이곳에서만 연결합니다.
+const getLevelLabel = (level) => {
+  const map = {
+    NEWBIE: 'Level 1',
+    BEGINNER: 'Level 2',
+    INTERMEDIATE: 'Level 3',
+    ADVANCED: 'Level 4',
+    HIGHLEVEL: 'Level 5',
+  }
+  return map[level] || level
 }
 
 onMounted(() => {
