@@ -139,11 +139,11 @@ import { isAdmin } from '../composables/useAuth';
 
 const levels = [
   { value: '', label: '전체' },
-  { value: 'NEWBIE', label: 'NEWBIE' },
-  { value: 'BEGINNER', label: 'BEGINNER' },
-  { value: 'INTERMEDIATE', label: 'INTERMEDIATE' },
-  { value: 'ADVANCED', label: 'ADVANCED' },
-  { value: 'HIGHLEVEL', label: 'HIGHLEVEL' },
+  { value: 'NEWBIE', label: 'Level 1' },
+  { value: 'BEGINNER', label: 'Level 2' },
+  { value: 'INTERMEDIATE', label: 'Level 3' },
+  { value: 'ADVANCED', label: 'Level 4' },
+  { value: 'HIGHLEVEL', label: 'Level 5' },
 ];
 
 const partOfSpeechOptions = [
@@ -173,6 +173,7 @@ const wordForm = ref({ englishWord: '', koreanMeaning: '', partOfSpeech: 'NOUN',
 const formError = ref('');
 const formLoading = ref(false);
 
+// [모듈화] 백엔드 난이도 enum과 화면의 1~5 레벨 표기를 이곳에서만 연결합니다.
 const difficultyLabel = (d) => levels.find(l => l.value === d)?.label ?? d;
 const posLabel = (p) => partOfSpeechOptions.find(o => o.value === p)?.label.split(' ')[0] ?? p;
 

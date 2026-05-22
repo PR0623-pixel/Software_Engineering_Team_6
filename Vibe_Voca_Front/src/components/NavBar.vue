@@ -1,7 +1,7 @@
+<!-- 파일 경로: src/components/NavBar.vue -->
 <template>
   <nav class="navbar-container">
     <div class="navbar-content">
-      
       <router-link to="/main" class="brand-logo">
         Vibe<span class="highlight">Voca</span>
       </router-link>
@@ -18,34 +18,74 @@
         </router-link>
       </div>
 
-      <div class="user-actions">
+      <div class="user-actions" ref="profileMenuRef">
         <template v-if="isLoggedIn">
-          <div class="user-avatar">
-            <span class="avatar-text">{{ nicknameInitial }}</span>
+          <button
+            class="user-avatar"
+            type="button"
+            :aria-expanded="isProfileOpen"
+            aria-label="프로필 메뉴 열기"
+            @click="toggleProfileMenu"
+          >
+            <img v-if="profileImg" :src="profileImg" alt="" class="avatar-img" />
+            <span v-else class="avatar-text">{{ nicknameInitial }}</span>
+          </button>
+
+          <div v-if="isProfileOpen" class="profile-popover">
+            <div class="profile-summary">
+              <div class="profile-avatar">
+                <img v-if="profileImg" :src="profileImg" alt="" class="profile-avatar-img" />
+                <span v-else>{{ nicknameInitial }}</span>
+              </div>
+              <div class="profile-meta">
+                <strong>{{ nickname }}</strong>
+                <span>{{ levelLabel }}</span>
+              </div>
+            </div>
+
+            <div class="profile-stats">
+              <div class="stat-item">
+                <span class="stat-label">레벨</span>
+                <strong>{{ levelLabel }}</strong>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">포인트</span>
+                <strong>{{ formattedPoints }}P</strong>
+              </div>
+            </div>
+
+            <button class="profile-link" type="button" @click="goProfile">
+              마이페이지 바로가기
+            </button>
           </div>
-          <button class="btn-text" @click="handleLogout">로그아웃</button>
+
+          <button class="btn-text" type="button" @click="handleLogout">로그아웃</button>
         </template>
         <template v-else>
-          <button class="btn-outline" @click="$router.push('/login')">로그인</button>
-          <button class="btn-primary" @click="$router.push('/register')">회원가입</button>
+          <button class="btn-outline" type="button" @click="$router.push('/login')">로그인</button>
+          <button class="btn-primary" type="button" @click="$router.push('/register')">회원가입</button>
         </template>
       </div>
-
     </div>
   </nav>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
 import { setRole, clearRole, setPoints } from '../composables/useAuth'
 
 const router = useRouter()
 
-// [정보은닉] 사용자 상태 보호
+// [정보은닉] 프로필 UI에 필요한 사용자 상태를 컴포넌트 내부에서만 관리합니다.
 const nickname = ref('')
+const profileImg = ref('')
+const level = ref(1)
+const points = ref(0)
 const isLoggedIn = ref(false)
+const isProfileOpen = ref(false)
+const profileMenuRef = ref(null)
 
 const navLinks = [
   { path: '/main', label: '홈' },
@@ -58,12 +98,64 @@ const nicknameInitial = computed(() => {
   return nickname.value ? nickname.value.charAt(0).toUpperCase() : 'U'
 })
 
+const levelLabel = computed(() => {
+  return formatLevel(level.value)
+})
+
+const formattedPoints = computed(() => {
+  return Number(points.value || 0).toLocaleString()
+})
+
+// [모듈화] 수준 점검 테스트 결과 표기 방식은 이 함수만 바꾸면 됩니다.
+const formatLevel = (value) => {
+  const numericLevel = Number(value || 1)
+  return `Level ${numericLevel}`
+}
+
+// [캡슐화] 백엔드 레벨 필드명이 바뀌어도 이 어댑터에서만 흡수합니다.
+const resolveProfileLevel = (data) => {
+  return data.level ?? data.userLevel ?? 1
+}
+
+// [캡슐화] 포인트 산정 기능이 붙으면 응답 필드 연결을 이 어댑터에서 확장합니다.
+const resolveProfilePoints = (data) => {
+  return data.points ?? data.point ?? 0
+}
+
+const toggleProfileMenu = () => {
+  isProfileOpen.value = !isProfileOpen.value
+}
+
+const closeProfileMenu = () => {
+  isProfileOpen.value = false
+}
+
+const goProfile = () => {
+  closeProfileMenu()
+  router.push('/me')
+}
+
+const handleDocumentClick = (event) => {
+  if (!profileMenuRef.value?.contains(event.target)) {
+    closeProfileMenu()
+  }
+}
+
+const handleKeydown = (event) => {
+  if (event.key === 'Escape') {
+    closeProfileMenu()
+  }
+}
+
 const checkLoginStatus = async () => {
   try {
-    const res = await api.get('/auth/me')
-    nickname.value = res.data.nickname
-    setRole(res.data.role)
-    setPoints(res.data.points ?? 0)
+    const { data } = await api.get('/auth/me')
+    nickname.value = data.nickname
+    profileImg.value = data.profileImg || ''
+    level.value = resolveProfileLevel(data)
+    points.value = resolveProfilePoints(data)
+    setRole(data.role)
+    setPoints(data.points ?? 0)
     isLoggedIn.value = true
   } catch {
     isLoggedIn.value = false
@@ -78,6 +170,7 @@ const handleLogout = async () => {
   } finally {
     isLoggedIn.value = false
     nickname.value = ''
+    closeProfileMenu()
     clearRole()
     router.push('/')
   }
@@ -85,11 +178,17 @@ const handleLogout = async () => {
 
 onMounted(() => {
   checkLoginStatus()
+  document.addEventListener('click', handleDocumentClick)
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+  document.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
 <style scoped>
-/* 전역 테마 색상 (보라색 포인트) */
 :root {
   --primary-color: #6B4EFF;
   --primary-hover: #5538e6;
@@ -99,7 +198,6 @@ onMounted(() => {
   --border-color: #f3f4f6;
 }
 
-/* 네비게이션 래퍼 */
 .navbar-container {
   background-color: var(--bg-color, #ffffff);
   border-bottom: 1px solid var(--border-color, #f3f4f6);
@@ -119,21 +217,14 @@ onMounted(() => {
   justify-content: space-between;
 }
 
-/* ====================================================
-   [버그 픽스 1] 로고 찌그러짐 및 납작해짐 완벽 방어 
-==================================================== */
 .brand-logo {
   font-family: 'Pretendard', 'Inter', sans-serif;
   font-size: 24px;
   font-weight: 800;
   color: var(--text-main, #111827);
   text-decoration: none;
-  
-  /* 자간을 넓게 주어 폰트가 깨져도 납작해 보이지 않게 설계 */
-  letter-spacing: -0.5px; 
-  
-  /* 레이아웃 수축 절대 방지 */
-  flex-shrink: 0 !important; 
+  letter-spacing: -0.5px;
+  flex-shrink: 0 !important;
   white-space: nowrap;
   display: inline-block;
 }
@@ -142,7 +233,6 @@ onMounted(() => {
   color: var(--primary-color, #6B4EFF);
 }
 
-/* 링크 스타일 */
 .nav-links {
   display: flex;
   gap: 8px;
@@ -169,50 +259,163 @@ onMounted(() => {
   background-color: #f0f0ff;
 }
 
-/* 유저 액션 및 버튼 영역 */
 .user-actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  position: relative;
 }
 
-/* ====================================================
-   [버그 픽스 2] 아바타 및 숫자 뱃지 타원형 변형 원천 차단
-==================================================== */
 .user-avatar {
   background-color: var(--primary-color, #6B4EFF);
   color: #ffffff;
+  border: none;
   border-radius: 50%;
-  
-  /* 크기를 고정하고 최소 크기를 보장 (찌그러짐 방지) */
   width: 36px;
   height: 36px;
   min-width: 36px !important;
   min-height: 36px !important;
-  
-  /* 가로세로 1:1 비율을 강제하여 완벽한 원형 유지 */
   aspect-ratio: 1 / 1 !important;
-  
-  /* 어떠한 경우에도 외부 레이아웃에 의해 줄어들지 않음 */
-  flex-shrink: 0 !important; 
-  
+  flex-shrink: 0 !important;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(107, 78, 255, 0.2);
+  overflow: hidden;
+}
+
+.user-avatar:hover {
+  background-color: var(--primary-hover, #5538e6);
+  transform: translateY(-1px);
+}
+
+.avatar-img,
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .avatar-text {
   font-weight: 700;
   font-size: 14px;
   line-height: 1;
-  /* 글자가 눌리지 않도록 여백 제거 및 폭 교정 */
   margin: 0;
   padding: 0;
   font-variant-numeric: tabular-nums;
 }
 
-/* 공통 버튼 스타일 */
+.profile-popover {
+  position: absolute;
+  top: 48px;
+  right: 58px;
+  width: 260px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #E4E3EC;
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(26, 26, 46, 0.14);
+  z-index: 1001;
+}
+
+.profile-popover::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 22px;
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  border-left: 1px solid #E4E3EC;
+  border-top: 1px solid #E4E3EC;
+  transform: rotate(45deg);
+}
+
+.profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f0f0ff;
+}
+
+.profile-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #6B4EFF;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.profile-meta strong {
+  color: #111827;
+  font-size: 15px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-meta span {
+  color: #6B4EFF;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.stat-item {
+  background: #F7F6F2;
+  border: 1px solid #E4E3EC;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.stat-label {
+  display: block;
+  color: #9090A0;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.stat-item strong {
+  color: #1A1A2E;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.profile-link {
+  width: 100%;
+  padding: 11px 12px;
+  background: #6B4EFF;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.profile-link:hover {
+  background: #5538e6;
+}
+
 button {
   font-family: inherit;
   font-weight: 600;
@@ -221,7 +424,7 @@ button {
   border-radius: 8px;
   transition: all 0.2s;
   white-space: nowrap;
-  flex-shrink: 0; /* 버튼 압착 방지 */
+  flex-shrink: 0;
 }
 
 .btn-text {
@@ -248,4 +451,24 @@ button {
   box-shadow: 0 2px 4px rgba(107, 78, 255, 0.1);
 }
 .btn-primary:hover { background: var(--primary-hover, #5538e6); }
+
+@media (max-width: 720px) {
+  .navbar-content {
+    height: auto;
+    min-height: 70px;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 18px;
+  }
+
+  .nav-links {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .profile-popover {
+    right: 0;
+  }
+}
 </style>

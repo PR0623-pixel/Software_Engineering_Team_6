@@ -2,6 +2,7 @@ package com.team6.voca.dto.user;
 
 import com.team6.voca.domain.user.*;
 
+// 파일 경로: src/main/java/com/team6/voca/dto/user/UserResponse.java
 public class UserResponse {
 
     private final Long id;
@@ -47,4 +48,3 @@ public class UserResponse {
     public UserRole getRole() { return role; }
     public int getPoints() { return points; }
 }
-
