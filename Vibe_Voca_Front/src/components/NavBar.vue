@@ -74,6 +74,7 @@
 import { ref, computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
+import { setRole, clearRole, setPoints } from '../composables/useAuth'
 
 const router = useRouter()
 
@@ -153,6 +154,8 @@ const checkLoginStatus = async () => {
     profileImg.value = data.profileImg || ''
     level.value = resolveProfileLevel(data)
     points.value = resolveProfilePoints(data)
+    setRole(data.role)
+    setPoints(data.points ?? 0)
     isLoggedIn.value = true
   } catch {
     isLoggedIn.value = false
@@ -168,6 +171,7 @@ const handleLogout = async () => {
     isLoggedIn.value = false
     nickname.value = ''
     closeProfileMenu()
+    clearRole()
     router.push('/')
   }
 }

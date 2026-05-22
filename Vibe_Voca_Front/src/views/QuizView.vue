@@ -5,11 +5,13 @@
     <div class="quiz-content">
       <div v-if="phase === 'setup'" class="phase-box">
         <header class="quiz-header">
-          <h1 class="page-title">단어 퀴즈</h1>
-          <p class="page-sub">한국어 뜻을 보고 영어 단어를 입력하세요</p>
+          <h1 class="page-title">{{ isErrorNoteMode ? '오답노트 재테스트' : '단어 퀴즈' }}</h1>
+          <p class="page-sub">
+            {{ isErrorNoteMode ? '오답노트에 저장된 모든 단어를 복습합니다.' : '한국어 뜻을 보고 영어 단어를 입력하세요' }}
+          </p>
         </header>
 
-        <div class="option-group">
+        <div v-if="!isErrorNoteMode" class="option-group">
           <label class="option-label">문제 수</label>
           <div class="filter-row">
             <button
@@ -33,7 +35,7 @@
         <p v-if="setupError" class="error-msg">{{ setupError }}</p>
 
         <button class="btn-primary" type="button" :disabled="setupLoading" @click="startQuiz">
-          {{ setupLoading ? '불러오는 중...' : '퀴즈 시작하기' }}
+          {{ setupLoading ? '불러오는 중...' : (isErrorNoteMode ? '복습 시작하기' : '퀴즈 시작하기') }}
         </button>
       </div>
 
@@ -131,12 +133,24 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import NavBar from '../components/NavBar.vue'
 import api from '../api/axios'
 
 const route = useRoute()
+const isErrorNoteMode = computed(() => route.query.mode === 'errorNote')
+
+const userId = ref(null)
+
+onMounted(async () => {
+  try {
+    const res = await api.get('/auth/me')
+    userId.value = res.data.id
+  } catch {
+    // 로그인 안 된 상태
+  }
+})
 
 const phase = ref('setup')
 const timerQuestionBlockSize = 5
@@ -252,22 +266,36 @@ const startQuiz = async () => {
   setupError.value = ''
   setupLoading.value = true
   try {
-    const { data } = await api.get('/api/quizzes/generate', {
-      params: {
-        count: setupCount.value,
-        quizType: route.query.quizType || 'quiz',
-      },
-    })
-    const list = Array.isArray(data) ? data : data.questions ?? []
-    if (list.length === 0) {
-      setupError.value = '퀴즈 문제가 없습니다.'
-      return
+    if (isErrorNoteMode.value) {
+      const { data } = await api.get('/api/error-notes/quiz', {
+        params: { userId: userId.value }
+      })
+      const list = Array.isArray(data) ? data : []
+      if (list.length === 0) {
+        setupError.value = '오답노트에 저장된 단어가 없습니다.'
+        return
+      }
+      questions.value = list
+      resetQuizState()
+      totalTimerSeconds.value = calculatePreviewTimerSeconds(list.length)
+      remainingSeconds.value = totalTimerSeconds.value
+    } else {
+      const { data } = await api.get('/api/quizzes/generate', {
+        params: {
+          count: setupCount.value,
+          quizType: route.query.quizType || 'quiz',
+        },
+      })
+      const list = Array.isArray(data) ? data : data.questions ?? []
+      if (list.length === 0) {
+        setupError.value = '퀴즈 문제가 없습니다.'
+        return
+      }
+      questions.value = list
+      resetQuizState()
+      totalTimerSeconds.value = resolveTimerSeconds(data, list.length)
+      remainingSeconds.value = totalTimerSeconds.value
     }
-
-    questions.value = list
-    resetQuizState()
-    totalTimerSeconds.value = resolveTimerSeconds(data, list.length)
-    remainingSeconds.value = totalTimerSeconds.value
     phase.value = 'quiz'
     startTimer()
     await nextTick()
@@ -294,11 +322,12 @@ const submitAnswer = () => {
       wordId: currentQ.value.wordId,
       questionMeaning: currentQ.value.questionMeaning,
       correctAnswer: correct,
+<<<<<<< HEAD
       submittedWord: submitted,
     })
   }
 
-  answers.value.push({ wordId: currentQ.value.wordId, submittedWord: submitted })
+  answers.value.push({ wordId: currentQ.value.wordId, submittedAnswer: submitted })
 }
 
 const nextQuestion = async () => {
@@ -322,10 +351,9 @@ const handleTimeExpired = async () => {
   timeExpiredNotice.value = true
   const answeredIds = new Set(answers.value.map((answer) => answer.wordId))
 
-  // [캡슐화] 남은 문제를 빈 답안으로 채워 서버와 화면 모두에서 오답으로 처리합니다.
   questions.value.forEach((question) => {
     if (!answeredIds.has(question.wordId)) {
-      answers.value.push({ wordId: question.wordId, submittedWord: '' })
+      answers.value.push({ wordId: question.wordId, submittedAnswer: '' })
       wrongAnswers.value.push({
         wordId: question.wordId,
         questionMeaning: question.questionMeaning,
@@ -338,14 +366,14 @@ const handleTimeExpired = async () => {
   await finishQuiz(true)
 }
 
-const finishQuiz = async (timeExpired) => {
+const finishQuiz = async (timeExpired = false) => {
   if (isFinishing.value) return
 
   isFinishing.value = true
   stopTimer()
   try {
     await api.post('/api/quizzes/submit', {
-      userId: null,
+      userId: userId.value,
       totalQuestionCount: questions.value.length,
       timeExpired,
       answers: answers.value,

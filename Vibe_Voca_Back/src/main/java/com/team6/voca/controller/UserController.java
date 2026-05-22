@@ -8,6 +8,7 @@ import com.team6.voca.common.util.FileStorageUtil;
 import com.team6.voca.dto.user.ChangePasswordRequest;
 import com.team6.voca.dto.user.UpdateProfileRequest;
 import com.team6.voca.dto.user.VerifyPasswordRequest;
+import com.team6.voca.domain.user.UserLevel;
 import com.team6.voca.service.UserService;
 import com.team6.voca.dto.auth.LoginRequest;
 
@@ -170,6 +171,17 @@ public class UserController {
 
         userService.changePassword(userId, req);
 
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/me/level")
+    public ResponseEntity<Void> updateLevel(
+        HttpServletRequest request,
+        @RequestBody java.util.Map<String, String> body
+    ) {
+        Long userId = getUserIdFromSession(request);
+        UserLevel level = UserLevel.valueOf(body.get("level"));
+        userService.updateLevel(userId, level);
         return ResponseEntity.ok().build();
     }
 

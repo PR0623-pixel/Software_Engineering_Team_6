@@ -1,8 +1,10 @@
 package com.team6.voca.controller;
 
 import com.team6.voca.dto.quiz.QuizGenerateResponseDto;
+import com.team6.voca.dto.quiz.QuizQuestionResponseDto;
 import com.team6.voca.dto.quiz.QuizSubmitRequestDto;
 import com.team6.voca.service.QuizService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,7 +31,11 @@ public class QuizController {
         return ResponseEntity.ok(quizService.generateQuiz(count, level, quizType));
     }
 
-    // [모듈화] 일괄 제출 답안 데이터를 Service로 넘겨 채점하도록 지시합니다.
+    @GetMapping("/level-test")
+    public ResponseEntity<List<QuizQuestionResponseDto>> generateLevelTest() {
+        return ResponseEntity.ok(quizService.generateLevelTestQuestions());
+    }
+
     @PostMapping("/submit")
     public ResponseEntity<Void> submitQuiz(@RequestBody QuizSubmitRequestDto request) {
         quizService.gradeAndSaveQuiz(request);

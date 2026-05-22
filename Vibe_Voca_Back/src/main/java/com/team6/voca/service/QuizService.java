@@ -1,12 +1,16 @@
 package com.team6.voca.service;
 
+import com.team6.voca.domain.user.*;
+import com.team6.voca.common.exception.NotFoundException;
 import com.team6.voca.domain.quiz.ErrorNote;
 import com.team6.voca.domain.quiz.QuizResult;
 import com.team6.voca.domain.word.Word;
+import com.team6.voca.domain.word.WordLevel;
 import com.team6.voca.dto.quiz.QuizGenerateResponseDto;
 import com.team6.voca.dto.quiz.QuizQuestionResponseDto;
 import com.team6.voca.dto.quiz.QuizSubmitRequestDto;
 import com.team6.voca.repository.QuizResultRepository;
+import com.team6.voca.repository.UserRepository;
 import com.team6.voca.repository.WordRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -14,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,8 +34,9 @@ public class QuizService {
 
     private final WordRepository wordRepository;
     private final QuizResultRepository quizResultRepository;
+    private final UserRepository userRepository;
+    private final PointService pointService;
 
-    // [캡슐화] 문제 목록과 타이머 정책을 한 응답으로 묶어 제공합니다.
     public QuizGenerateResponseDto generateQuiz(int count, String level, String quizType) {
         List<QuizQuestionResponseDto> questions = generateQuestions(count, level);
         boolean fixedTimer = "level-test".equalsIgnoreCase(quizType)
@@ -42,15 +48,12 @@ public class QuizService {
         return QuizGenerateResponseDto.of(questions, timerSeconds, fixedTimer);
     }
 
-    // [모듈화] 일반 퀴즈 타이머 정책은 이 메서드만 수정하면 바뀌도록 분리합니다.
     private int calculateQuizTimerSeconds(int questionCount) {
         int safeQuestionCount = Math.max(questionCount, 1);
         int blockCount = (int) Math.ceil((double) safeQuestionCount / TIMER_QUESTION_BLOCK_SIZE);
         return blockCount * TIMER_SECONDS_PER_BLOCK;
     }
 
-    // [캡슐화] 퀴즈를 어떻게 생성하고(Random) 문제를 어떻게 구성하는지에 대한
-    // 모든 복잡한 비즈니스 로직을 이 메서드 하나로 캡슐화하여 컨트롤러에 제공합니다.
     public List<QuizQuestionResponseDto> generateQuestions(int count, String level) {
         List<Word> targetWords = wordRepository.findRandomWords(PageRequest.of(0, count));
 
@@ -59,44 +62,59 @@ public class QuizService {
                 .collect(Collectors.toList());
     }
 
-    // [캡슐화] 채점, 점수 계산, 오답노트 생성이라는 복잡한 상태 변경 로직을 하나의 트랜잭션으로 묶어 캡슐화합니다.
+    public List<QuizQuestionResponseDto> generateLevelTestQuestions() {
+        List<QuizQuestionResponseDto> questions = new ArrayList<>();
+        for (WordLevel level : WordLevel.values()) {
+            List<Word> words = wordRepository.findRandomWordsByLevel(level.name(), PageRequest.of(0, 3));
+            words.stream()
+                    .map(w -> QuizQuestionResponseDto.of(w.getId(), w.getKoreanMeaning(), w.getEnglishWord()))
+                    .forEach(questions::add);
+        }
+        Collections.shuffle(questions);
+        return questions;
+    }
+
     @Transactional
     public void gradeAndSaveQuiz(QuizSubmitRequestDto request) {
-        int score = 0;
+        User user = userRepository.findById(request.userId())
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+
         List<QuizSubmitRequestDto.QuizAnswerDto> answers =
                 request.answers() == null ? List.of() : request.answers();
         int totalQuestions = request.totalQuestionCount() == null
                 ? answers.size()
                 : request.totalQuestionCount();
-        List<ErrorNote> errorNotes = new ArrayList<>();
 
-        // [모듈화] 유저가 제출한 모든 답안을 순회하며 DB의 실제 영어 단어와 대조합니다.
-        for (QuizSubmitRequestDto.QuizAnswerDto answer : answers) {
-            Word word = wordRepository.findById(answer.wordId())
-                    .orElseThrow(() -> new IllegalArgumentException("단어를 찾을 수 없습니다."));
-
-            String submittedWord = answer.submittedWord() == null ? "" : answer.submittedWord().trim();
-
-            if (word.getEnglishWord().equalsIgnoreCase(submittedWord)) {
-                score++;
-            } else {
-                ErrorNote errorNote = ErrorNote.builder()
-                        .word(word)
-                        .submittedAnswer(submittedWord)
-                        .build();
-                errorNotes.add(errorNote);
-            }
-        }
-
-        QuizResult quizResult = QuizResult.builder()
-                .userId(request.userId())
-                .score(score)
+        QuizResult result = QuizResult.builder()
+                .user(user)
                 .totalQuestions(totalQuestions)
                 .build();
 
-        // [캡슐화] 연관관계 편의 메서드를 통해 ErrorNote가 QuizResult를 알도록 연결합니다.
-        errorNotes.forEach(quizResult::addErrorNote);
+        int correctCount = 0;
 
-        quizResultRepository.save(quizResult);
+        for (QuizSubmitRequestDto.QuizAnswerDto answer : answers) {
+            Word word = wordRepository.findById(answer.wordId())
+                    .orElseThrow(() -> new NotFoundException("단어 정보를 찾을 수 없습니다."));
+
+            String submitted = answer.submittedAnswer() == null ? "" : answer.submittedAnswer().trim();
+            boolean isCorrect = word.getEnglishWord().equalsIgnoreCase(submitted);
+
+            if (isCorrect) {
+                correctCount++;
+            } else {
+                ErrorNote errorNote = ErrorNote.builder()
+                        .word(word)
+                        .submittedAnswer(submitted)
+                        .memo("")
+                        .build();
+                result.addErrorNote(errorNote);
+            }
+        }
+
+        double score = totalQuestions > 0 ? ((double) correctCount / totalQuestions) * 100 : 0;
+        result.updateResult(correctCount, (int) score);
+        quizResultRepository.save(result);
+
+        pointService.awardQuizPoints(request.userId());
     }
 }
