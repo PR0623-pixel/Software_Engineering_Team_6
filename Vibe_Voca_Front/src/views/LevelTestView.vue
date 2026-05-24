@@ -31,11 +31,25 @@
 
       <!-- 2. Quiz -->
       <div v-else-if="phase === 'quiz'" class="phase-box">
-        <div class="progress-row">
-          <span class="progress-text">{{ currentIndex + 1 }} / {{ questions.length }}</span>
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: progressPct + '%' }"></div>
+        <div class="quiz-status">
+          <div class="progress-row">
+            <span class="progress-text">{{ currentIndex + 1 }} / {{ questions.length }}</span>
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: progressPct + '%' }"></div>
+            </div>
           </div>
+
+          <div class="timer-card" :class="{ urgent: remainingSeconds <= 10 }">
+            <span class="timer-label">남은 시간</span>
+            <strong>{{ formattedRemainingTime }}</strong>
+            <div class="timer-track">
+              <div class="timer-fill" :style="{ width: timerPct + '%' }"></div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="timeExpiredNotice" class="timeout-notice">
+          시간이 종료되어 남은 문제는 오답으로 처리되었습니다.
         </div>
 
         <div class="question-card">
@@ -90,7 +104,9 @@
 
         <p v-if="saveError" class="error-msg">{{ saveError }}</p>
 
-        <button class="btn-primary" @click="goToMain">메인으로 돌아가기</button>
+        <button class="btn-primary" :disabled="saving" @click="goToMain">
+          {{ saving ? '저장 중...' : '메인으로 돌아가기' }}
+        </button>
       </div>
 
     </div>
@@ -98,7 +114,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import NavBar from '../components/NavBar.vue';
 import api from '../api/axios';
@@ -116,6 +132,15 @@ const typedAnswer = ref('');
 const isAnswered = ref(false);
 const isCorrect = ref(false);
 const correctCount = ref(0);
+const answers = ref([]);
+const userId = ref(null);
+const saving = ref(false);
+
+const LEVEL_TEST_SECONDS = 180;
+const totalTimerSeconds = ref(0);
+const remainingSeconds = ref(0);
+const timerId = ref(null);
+const timeExpiredNotice = ref(false);
 
 const answerInput = ref(null);
 
@@ -162,18 +187,66 @@ const scoreClass = computed(() => {
   return 'poor';
 });
 
+const timerPct = computed(() =>
+  totalTimerSeconds.value ? Math.max(0, (remainingSeconds.value / totalTimerSeconds.value) * 100) : 0
+);
+const formattedRemainingTime = computed(() => {
+  const s = Math.max(remainingSeconds.value, 0);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+});
+
+const stopTimer = () => {
+  if (timerId.value) { clearInterval(timerId.value); timerId.value = null; }
+};
+
+const startTimer = () => {
+  stopTimer();
+  timerId.value = setInterval(() => {
+    if (remainingSeconds.value <= 1) {
+      remainingSeconds.value = 0;
+      stopTimer();
+      handleTimeExpired();
+      return;
+    }
+    remainingSeconds.value -= 1;
+  }, 1000);
+};
+
+const handleTimeExpired = async () => {
+  if (phase.value !== 'quiz') return;
+  timeExpiredNotice.value = true;
+  const answeredIds = new Set(answers.value.map(a => a.wordId));
+  questions.value.forEach(q => {
+    if (!answeredIds.has(q.wordId)) {
+      answers.value.push({ wordId: q.wordId, submittedAnswer: '' });
+    }
+  });
+  await finishTest();
+};
+
+onBeforeUnmount(stopTimer);
+
 const startTest = async () => {
   loadError.value = '';
   loading.value = true;
   try {
-    const { data } = await api.get('/api/quizzes/level-test');
-    if (!data.length) { loadError.value = '문제를 불러오지 못했습니다.'; return; }
-    questions.value = data;
+    const [levelTestRes, meRes] = await Promise.all([
+      api.get('/api/quizzes/level-test'),
+      api.get('/auth/me').catch(() => ({ data: null })),
+    ]);
+    if (!levelTestRes.data.length) { loadError.value = '문제를 불러오지 못했습니다.'; return; }
+    questions.value = levelTestRes.data;
+    userId.value = meRes.data?.id ?? null;
     currentIndex.value = 0;
     typedAnswer.value = '';
     isAnswered.value = false;
     correctCount.value = 0;
+    answers.value = [];
+    timeExpiredNotice.value = false;
+    totalTimerSeconds.value = LEVEL_TEST_SECONDS;
+    remainingSeconds.value = LEVEL_TEST_SECONDS;
     phase.value = 'quiz';
+    startTimer();
     await nextTick();
     answerInput.value?.focus();
   } catch {
@@ -189,6 +262,7 @@ const submitAnswer = () => {
   isCorrect.value = submitted.toLowerCase() === currentQ.value.correctAnswer.toLowerCase();
   isAnswered.value = true;
   if (isCorrect.value) correctCount.value++;
+  answers.value.push({ wordId: currentQ.value.wordId, submittedAnswer: submitted });
 };
 
 const nextQuestion = async () => {
@@ -205,11 +279,27 @@ const nextQuestion = async () => {
 };
 
 const finishTest = async () => {
+  stopTimer();
   phase.value = 'result';
+  saving.value = true;
+  const tasks = [
+    api.patch('/api/users/me/level', { level: determinedLevel.value }),
+  ];
+  if (userId.value) {
+    tasks.push(
+      api.post('/api/quizzes/submit', {
+        userId: userId.value,
+        totalQuestionCount: questions.value.length,
+        answers: answers.value,
+      }).catch(() => {})
+    );
+  }
   try {
-    await api.patch('/api/users/me/level', { level: determinedLevel.value });
+    await Promise.all(tasks);
   } catch {
     saveError.value = '레벨 저장에 실패했습니다. 다시 시도해주세요.';
+  } finally {
+    saving.value = false;
   }
 };
 
@@ -286,10 +376,49 @@ const goToMain = () => {
 .btn-primary:active { transform: scale(0.985); }
 .btn-primary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
 
-.progress-row { display: flex; flex-direction: column; gap: 8px; }
+.quiz-status {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.progress-row { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
 .progress-text { font-size: 13px; font-weight: 500; color: var(--muted); }
 .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
 .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s ease; }
+
+.timer-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.timer-label { color: var(--muted); font-size: 11px; font-weight: 700; }
+.timer-card strong {
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.timer-card.urgent strong { color: #A32D2D; }
+.timer-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.timer-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s ease; }
+.timer-card.urgent .timer-fill { background: #A32D2D; }
+
+.timeout-notice {
+  padding: 11px 14px;
+  background: #FCEBEB;
+  border: 1px solid #F4B7B7;
+  border-radius: var(--radius-sm);
+  color: #A32D2D;
+  font-size: 13px;
+  font-weight: 700;
+}
 
 .question-card {
   background: #fff;

@@ -322,7 +322,6 @@ const submitAnswer = () => {
       wordId: currentQ.value.wordId,
       questionMeaning: currentQ.value.questionMeaning,
       correctAnswer: correct,
-<<<<<<< HEAD
       submittedWord: submitted,
     })
   }
