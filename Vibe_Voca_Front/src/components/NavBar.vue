@@ -71,12 +71,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import api from '../api/axios'
 import { setRole, clearRole, setPoints } from '../composables/useAuth'
 
 const router = useRouter()
+const route = useRoute()
+
+watch(() => route.path, () => checkLoginStatus())
 
 // [정보은닉] 프로필 UI에 필요한 사용자 상태를 컴포넌트 내부에서만 관리합니다.
 const nickname = ref('')
@@ -106,10 +109,16 @@ const formattedPoints = computed(() => {
   return Number(points.value || 0).toLocaleString()
 })
 
-// [모듈화] 수준 점검 테스트 결과 표기 방식은 이 함수만 바꾸면 됩니다.
 const formatLevel = (value) => {
-  const numericLevel = Number(value || 1)
-  return `Level ${numericLevel}`
+  const labels = {
+    STARTER:      'STARTER',
+    NEWBIE:       'NEWBIE',
+    BEGINNER:     'BEGINNER',
+    INTERMEDIATE: 'INTERMEDIATE',
+    ADVANCED:     'ADVANCED',
+    HIGHLEVEL:    'HIGHLEVEL',
+  };
+  return labels[value] ?? `Level ${Number(value) || 1}`;
 }
 
 // [캡슐화] 백엔드 레벨 필드명이 바뀌어도 이 어댑터에서만 흡수합니다.

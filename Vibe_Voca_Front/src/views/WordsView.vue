@@ -64,6 +64,18 @@
               {{ difficultyLabel(selectedWord.level) }}
             </span>
           </div>
+
+          <!-- 예문 섹션 -->
+          <div v-if="selectedWord.examples && selectedWord.examples.length > 0" class="examples-section">
+            <h4 class="examples-title">예문</h4>
+            <ul class="examples-list">
+              <li v-for="ex in selectedWord.examples" :key="ex.id" class="example-item">
+                <p class="example-en">{{ ex.exampleSentence }}</p>
+                <p class="example-ko">{{ ex.koreanTranslation }}</p>
+              </li>
+            </ul>
+          </div>
+
           <div v-if="isAdmin" class="modal-actions-row">
             <button class="btn-edit" @click="openEditModal(selectedWord)">수정</button>
             <button class="btn-delete" @click="openDeleteConfirm(selectedWord)">삭제</button>
@@ -100,6 +112,17 @@
                 {{ lv.label }}
               </option>
             </select>
+          </div>
+
+          <!-- 예문 관리 (수정 모드만) -->
+          <div v-if="formMode === 'edit'" class="form-group">
+            <label>예문</label>
+            <div v-for="(ex, idx) in wordForm.examples" :key="idx" class="example-form-item">
+              <input type="text" v-model="ex.exampleSentence" placeholder="예: He abandoned the project." />
+              <input type="text" v-model="ex.koreanTranslation" placeholder="예: 그는 프로젝트를 포기했다." />
+              <button type="button" class="btn-remove-ex" @click="removeExample(idx)">✕</button>
+            </div>
+            <button type="button" class="btn-add-ex" @click="addExample">+ 예문 추가</button>
           </div>
 
           <p v-if="formError" class="form-error">{{ formError }}</p>
@@ -199,14 +222,22 @@ const fetchWords = async () => {
 };
 
 const setDifficulty = (d) => { selectedDifficulty.value = d; };
-const openModal = (word) => { selectedWord.value = word; };
+
+const openModal = async (word) => {
+  try {
+    const { data } = await api.get(`/api/words/${word.id}`);
+    selectedWord.value = data;
+  } catch {
+    selectedWord.value = word;
+  }
+};
 const closeModal = () => { selectedWord.value = null; };
 
 // 추가
 const openCreateModal = () => {
   formMode.value = 'create';
   editingId.value = null;
-  wordForm.value = { englishWord: '', koreanMeaning: '', partOfSpeech: 'NOUN', level: 'NEWBIE' };
+  wordForm.value = { englishWord: '', koreanMeaning: '', partOfSpeech: 'NOUN', level: 'NEWBIE', examples: [] };
   formError.value = '';
   isFormModalOpen.value = true;
 };
@@ -220,11 +251,19 @@ const openEditModal = (word) => {
     koreanMeaning: word.koreanMeaning,
     partOfSpeech: word.partOfSpeech,
     level: word.level,
+    examples: (word.examples || []).map(e => ({
+      exampleSentence: e.exampleSentence,
+      koreanTranslation: e.koreanTranslation,
+    })),
   };
   formError.value = '';
   selectedWord.value = null;
   isFormModalOpen.value = true;
 };
+
+// 예문 추가/삭제
+const addExample = () => wordForm.value.examples.push({ exampleSentence: '', koreanTranslation: '' });
+const removeExample = (idx) => wordForm.value.examples.splice(idx, 1);
 
 // 추가/수정 공통 제출
 const submitForm = async () => {
@@ -236,10 +275,23 @@ const submitForm = async () => {
   formError.value = '';
   try {
     if (formMode.value === 'create') {
-      const { data } = await api.post('/api/words', wordForm.value);
+      const { data } = await api.post('/api/words', {
+        englishWord: wordForm.value.englishWord,
+        koreanMeaning: wordForm.value.koreanMeaning,
+        partOfSpeech: wordForm.value.partOfSpeech,
+        level: wordForm.value.level,
+      });
       words.value.push(data);
     } else {
-      const { data } = await api.put(`/api/words/${editingId.value}`, wordForm.value);
+      const { data } = await api.put(`/api/words/${editingId.value}`, {
+        englishWord: wordForm.value.englishWord,
+        koreanMeaning: wordForm.value.koreanMeaning,
+        partOfSpeech: wordForm.value.partOfSpeech,
+        level: wordForm.value.level,
+        examples: wordForm.value.examples
+          .filter(e => e.exampleSentence.trim())
+          .map(e => ({ exampleSentence: e.exampleSentence.trim(), koreanTranslation: e.koreanTranslation.trim() })),
+      });
       const idx = words.value.findIndex(w => w.id === editingId.value);
       if (idx !== -1) words.value[idx] = data;
     }
@@ -617,4 +669,78 @@ onMounted(fetchWords);
 }
 .btn-delete-confirm:hover { background: #c73b3a; }
 .btn-delete-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* 예문 (상세 모달) */
+.examples-section {
+  margin-bottom: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.examples-title {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.examples-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.example-item {
+  background: #f8f8fc;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.example-en { font-size: 14px; color: var(--text); margin-bottom: 4px; }
+.example-ko { font-size: 12px; color: var(--muted); }
+
+/* 예문 관리 (폼 모달) */
+.example-form-item {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.example-form-item input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+  background: #fff;
+}
+.example-form-item input:focus { border-color: var(--accent); }
+.btn-remove-ex {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.btn-remove-ex:hover { border-color: #E24B4A; color: #E24B4A; }
+.btn-add-ex {
+  padding: 6px 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+  text-align: center;
+}
+.btn-add-ex:hover { border-color: var(--accent); color: var(--accent); }
 </style>

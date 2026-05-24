@@ -1,8 +1,10 @@
 package com.team6.voca.domain.user;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.DynamicUpdate;
 
 @Entity
+@DynamicUpdate
 @Table(name = "users")
 public class User {
 
