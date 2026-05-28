@@ -1,20 +1,21 @@
 -- 관리자 계정
-INSERT IGNORE INTO users (email, password, nickname, status) VALUES
-('admin@vibevoca.com', 'admin1234', '관리자', 'ACTIVE');
+INSERT IGNORE INTO users (email, password, nickname, status, role) VALUES
+('admin@vibevoca.com', 'admin1234', '관리자', 'ACTIVE', 'ADMIN');
 
 -- 테스트 사용자 계정
-INSERT IGNORE INTO users (email, password, nickname, status) VALUES
-('test@vibevoca.com', 'user1234', '테스트유저', 'ACTIVE');
+INSERT IGNORE INTO users (email, password, nickname, status, role) VALUES
+('test@vibevoca.com', 'user1234', '테스트유저', 'ACTIVE', 'USER');
 
 -- TOEIC 기본 단어 50개 (english_word, korean_meaning, part_of_speech, level)
+-- NEWBIE(17) / BEGINNER(21) / INTERMEDIATE(6) / ADVANCED(3) / HIGHLEVEL(3)
 INSERT IGNORE INTO words (english_word, korean_meaning, part_of_speech, level) VALUES
 ('abundant',      '풍부한',             'ADJECTIVE',  'BEGINNER'),
 ('acquire',       '얻다, 습득하다',      'VERB',       'BEGINNER'),
 ('advocate',      '지지하다, 지지자',    'VERB',       'INTERMEDIATE'),
 ('allocate',      '할당하다',            'VERB',       'INTERMEDIATE'),
 ('alternative',   '대안, 대체의',        'NOUN',       'BEGINNER'),
+('ambiguous',     '모호한',              'ADJECTIVE',  'ADVANCED'),
 ('anticipate',    '예상하다',            'VERB',       'BEGINNER'),
-('apparent',      '명백한',              'ADJECTIVE',  'BEGINNER'),
 ('assess',        '평가하다',            'VERB',       'BEGINNER'),
 ('assign',        '배정하다',            'VERB',       'NEWBIE'),
 ('authorize',     '승인하다',            'VERB',       'BEGINNER'),
@@ -24,25 +25,22 @@ INSERT IGNORE INTO words (english_word, korean_meaning, part_of_speech, level) V
 ('capacity',      '수용 능력, 역량',     'NOUN',       'BEGINNER'),
 ('collaborate',   '협력하다',            'VERB',       'BEGINNER'),
 ('commence',      '시작하다',            'VERB',       'BEGINNER'),
-('compensate',    '보상하다',            'VERB',       'BEGINNER'),
 ('comply',        '따르다, 준수하다',    'VERB',       'BEGINNER'),
 ('comprehensive', '포괄적인',            'ADJECTIVE',  'INTERMEDIATE'),
-('conclude',      '결론 내리다',         'VERB',       'NEWBIE'),
 ('conduct',       '수행하다, 행동',      'VERB',       'NEWBIE'),
-('confirm',       '확인하다',            'VERB',       'NEWBIE'),
 ('consecutive',   '연속적인',            'ADJECTIVE',  'INTERMEDIATE'),
 ('contract',      '계약, 계약하다',      'NOUN',       'NEWBIE'),
 ('deadline',      '마감일',              'NOUN',       'NEWBIE'),
-('decline',       '감소하다, 거절하다',  'VERB',       'NEWBIE'),
 ('dedicate',      '헌신하다',            'VERB',       'BEGINNER'),
 ('delay',         '지연시키다',          'VERB',       'NEWBIE'),
 ('demonstrate',   '시연하다, 증명하다',  'VERB',       'BEGINNER'),
 ('distribute',    '배포하다',            'VERB',       'BEGINNER'),
+('elaborate',     '상세히 설명하다, 정교한', 'VERB',   'ADVANCED'),
 ('efficient',     '효율적인',            'ADJECTIVE',  'NEWBIE'),
 ('eliminate',     '제거하다',            'VERB',       'BEGINNER'),
-('emphasis',      '강조',                'NOUN',       'BEGINNER'),
 ('establish',     '설립하다',            'VERB',       'NEWBIE'),
 ('evaluate',      '평가하다',            'VERB',       'BEGINNER'),
+('exacerbate',    '악화시키다',          'VERB',       'HIGHLEVEL'),
 ('expansion',     '확장',                'NOUN',       'BEGINNER'),
 ('facilitate',    '용이하게 하다',       'VERB',       'INTERMEDIATE'),
 ('flexible',      '유연한',              'ADJECTIVE',  'NEWBIE'),
@@ -51,13 +49,16 @@ INSERT IGNORE INTO words (english_word, korean_meaning, part_of_speech, level) V
 ('indicate',      '나타내다',            'VERB',       'NEWBIE'),
 ('inevitable',    '불가피한',            'ADJECTIVE',  'INTERMEDIATE'),
 ('inspection',    '검사',                'NOUN',       'BEGINNER'),
+('mitigate',      '완화시키다',          'VERB',       'HIGHLEVEL'),
 ('negotiate',     '협상하다',            'VERB',       'BEGINNER'),
 ('obligation',    '의무',                'NOUN',       'BEGINNER'),
 ('obtain',        '얻다',                'VERB',       'NEWBIE'),
 ('productive',    '생산적인',            'ADJECTIVE',  'NEWBIE'),
 ('profitable',    '수익성 있는',         'ADJECTIVE',  'NEWBIE'),
 ('promote',       '홍보하다, 승진시키다','VERB',        'NEWBIE'),
-('qualify',       '자격을 갖추다',       'VERB',       'NEWBIE');
+('qualify',       '자격을 갖추다',       'VERB',       'NEWBIE'),
+('scrutinize',    '면밀히 조사하다',     'VERB',       'ADVANCED'),
+('ubiquitous',    '어디에나 있는',       'ADJECTIVE',  'HIGHLEVEL');
 
 -- 예문 삽입 (example_sentence, korean_translation)
 INSERT IGNORE INTO word_examples (word_id, example_sentence, korean_translation)
@@ -99,3 +100,39 @@ FROM words w WHERE w.english_word = 'productive';
 INSERT IGNORE INTO word_examples (word_id, example_sentence, korean_translation)
 SELECT w.id, 'You must qualify for the position before applying.', '지원하기 전에 해당 직책의 자격을 갖춰야 합니다.'
 FROM words w WHERE w.english_word = 'qualify';
+
+INSERT IGNORE INTO word_examples (word_id, example_sentence, korean_translation)
+SELECT w.id, 'The contract terms were ambiguous and caused confusion.', '계약 조건이 모호하여 혼란을 일으켰다.'
+FROM words w WHERE w.english_word = 'ambiguous';
+
+INSERT IGNORE INTO word_examples (word_id, example_sentence, korean_translation)
+SELECT w.id, 'Could you elaborate on your proposal?', '제안에 대해 좀 더 상세히 설명해 주시겠습니까?'
+FROM words w WHERE w.english_word = 'elaborate';
+
+INSERT IGNORE INTO word_examples (word_id, example_sentence, korean_translation)
+SELECT w.id, 'The auditor scrutinized every line of the financial report.', '감사관은 재무 보고서의 모든 항목을 면밀히 조사했다.'
+FROM words w WHERE w.english_word = 'scrutinize';
+
+INSERT IGNORE INTO word_examples (word_id, example_sentence, korean_translation)
+SELECT w.id, 'Delays in delivery will exacerbate customer dissatisfaction.', '배송 지연은 고객 불만을 악화시킬 것이다.'
+FROM words w WHERE w.english_word = 'exacerbate';
+
+INSERT IGNORE INTO word_examples (word_id, example_sentence, korean_translation)
+SELECT w.id, 'The new policy aims to mitigate the impact of rising costs.', '새 정책은 비용 상승의 영향을 완화하는 것을 목표로 한다.'
+FROM words w WHERE w.english_word = 'mitigate';
+
+INSERT IGNORE INTO word_examples (word_id, example_sentence, korean_translation)
+SELECT w.id, 'Smartphones have become ubiquitous in modern society.', '스마트폰은 현대 사회에서 어디에나 있는 존재가 되었다.'
+FROM words w WHERE w.english_word = 'ubiquitous';
+
+-- 포인트 정책 기본값
+INSERT IGNORE INTO point_policies (policy_key, points, description) VALUES
+('QUIZ_COMPLETE', 10, '퀴즈 완료 기본 포인트'),
+('DAILY_BONUS',   10, '하루 첫 퀴즈 추가 포인트');
+
+-- 샘플 상점 아이템
+INSERT IGNORE INTO shop_items (name, description, price) VALUES
+('골든 배지',     '황금빛 특별 배지 컬렉터블',   300),
+('스터디 스티커', '귀여운 공부 스티커 컬렉터블',  150),
+('트로피 아이콘', '최상위 학습자 트로피',         500),
+('별 뱃지',       '빛나는 별 모양 배지',          100);

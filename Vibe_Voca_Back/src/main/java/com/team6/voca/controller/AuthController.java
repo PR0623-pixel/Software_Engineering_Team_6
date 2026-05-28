@@ -48,14 +48,15 @@ public class AuthController {
         
         UserResponse response = authService.login(request);
 
-        //로그인 유지용 세션 생성
+        // [정보은닉] 클라이언트에게 민감한 정보는 숨기고, 서버의 세션 공간에만 권한 상태를 안전하게 저장합니다.
         HttpSession session = httpRequest.getSession(true);
         session.setAttribute("userId", response.getId());
+        session.setAttribute("role", response.getRole().name());
         
         return ResponseEntity.ok(response);
     }
     
-    //마이페이지 조회 (경로 /auth/추가 11/24)
+    //마이페이지 조회
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getMyInfo(HttpServletRequest request) {
         

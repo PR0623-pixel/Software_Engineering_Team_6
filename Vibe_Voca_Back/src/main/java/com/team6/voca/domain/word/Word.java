@@ -69,4 +69,12 @@ public class Word extends BaseTimeEntity { // 공동 시간 필드 상속을 위
         this.examples.add(example);
         example.setWord(this);
     }
+
+    public void replaceExamples(List<WordExample> newExamples) {
+        this.examples.clear();
+        for (WordExample example : newExamples) {
+            example.setWord(this);
+            this.examples.add(example);
+        }
+    }
 }

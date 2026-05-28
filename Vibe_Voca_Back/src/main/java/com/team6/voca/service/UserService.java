@@ -4,6 +4,8 @@ import com.team6.voca.common.exception.NotFoundException;
 import com.team6.voca.common.exception.UnauthorizedException;
 import com.team6.voca.domain.user.User;
 import com.team6.voca.domain.user.UserStatus;
+import com.team6.voca.domain.user.UserLevel;
+import com.team6.voca.domain.user.UserRole;
 import com.team6.voca.dto.user.ChangePasswordRequest;
 import com.team6.voca.dto.user.UpdateProfileRequest;
 import com.team6.voca.dto.user.UserRegisterRequest;
@@ -39,6 +41,7 @@ public class UserService {
         user.setNickname(request.getNickname());
         user.setStatus(UserStatus.ACTIVE);
         user.setProfileImg(DEFAULT_PROFILE_IMAGE);
+        user.setRole(UserRole.USER);
 
         // DB 저장
         User saved = userRepository.save(user);
@@ -119,6 +122,16 @@ public class UserService {
         }
 
         user.setPassword(req.getNewPassword());
+    }
+
+    @Transactional
+    public void updateLevel(Long userId, UserLevel level) {
+        if (userId == null) {
+            throw new UnauthorizedException("로그인이 필요합니다.");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
+        user.setLevel(level);
     }
 
     @Transactional(readOnly = true)
